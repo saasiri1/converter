@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>محول درجات بلاك بورد</title>
+  <title>Blackboard Grade Converter | محول درجات بلاك بورد</title>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,11 +18,31 @@
     header {
       background: #16213e;
       color: white;
-      padding: 20px 32px;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    header h1 { font-size: 1.35rem; font-weight: 700; }
-    header p { font-size: 0.83rem; opacity: 0.65; margin-top: 5px; }
+    header h1 { font-size: 1.3rem; font-weight: 700; }
+    header p  { font-size: 0.82rem; opacity: 0.65; margin-top: 4px; }
+
+    .lang-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.4);
+      color: white;
+      border-radius: 7px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .lang-btn:hover { background: rgba(255,255,255,0.25); }
 
     main {
       max-width: 920px;
@@ -65,7 +85,6 @@
       flex-shrink: 0;
     }
 
-    /* Upload */
     .upload-zone {
       border: 2px dashed #c8cdd8;
       border-radius: 8px;
@@ -77,77 +96,39 @@
       position: relative;
     }
 
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #0f3460;
-      background: #f0f4ff;
-    }
-
+    .upload-zone:hover, .upload-zone.drag-over { border-color: #0f3460; background: #f0f4ff; }
     .upload-zone.has-file { border-color: #28a745; background: #f0fff4; }
-
-    .upload-zone input[type=file] {
-      position: absolute; inset: 0; opacity: 0; cursor: pointer;
-    }
+    .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
     .upload-label { font-size: 0.9rem; font-weight: 600; color: #444; }
-    .upload-sub { font-size: 0.79rem; color: #888; margin-top: 4px; }
-    .file-name { margin-top: 7px; font-size: 0.83rem; color: #28a745; font-weight: 600; }
+    .upload-sub   { font-size: 0.79rem; color: #888; margin-top: 4px; }
+    .file-name    { margin-top: 7px; font-size: 0.83rem; color: #28a745; font-weight: 600; }
 
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
 
-    label.field-label {
-      display: block;
-      font-size: 0.87rem;
-      font-weight: 600;
-      margin-bottom: 7px;
-      color: #333;
-    }
+    label.field-label { display: block; font-size: 0.87rem; font-weight: 600; margin-bottom: 7px; color: #333; }
 
     input[type=number] {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1.5px solid #d0d5e0;
-      border-radius: 7px;
-      font-size: 0.9rem;
-      font-family: inherit;
-      background: white;
-      color: #1a1a2e;
-      outline: none;
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #d0d5e0; border-radius: 7px;
+      font-size: 0.9rem; font-family: inherit;
+      background: white; color: #1a1a2e; outline: none;
       transition: border-color 0.2s;
     }
-
     input[type=number]:focus { border-color: #0f3460; }
 
     .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
-
     .radio-option {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 8px 15px;
-      border: 1.5px solid #d0d5e0;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-size: 0.88rem;
-      font-weight: 500;
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 15px; border: 1.5px solid #d0d5e0;
+      border-radius: 7px; cursor: pointer;
+      transition: all 0.15s; font-size: 0.88rem; font-weight: 500;
     }
-
-    .radio-option:has(input:checked) {
-      border-color: #0f3460;
-      background: #f0f4ff;
-      color: #0f3460;
-    }
-
+    .radio-option:has(input:checked) { border-color: #0f3460; background: #f0f4ff; color: #0f3460; }
     .radio-option input { accent-color: #0f3460; }
 
     .hint { font-size: 0.78rem; color: #888; margin-top: 5px; }
-
     .field-group { margin-bottom: 18px; }
     .field-group:last-child { margin-bottom: 0; }
 
@@ -156,298 +137,143 @@
 
     .divider { height: 1px; background: #e8eaf0; margin: 20px 0; }
 
-    /* Column checklists */
-    .col-panels {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
+    .col-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     @media (max-width: 640px) { .col-panels { grid-template-columns: 1fr; } }
 
-    .col-panel {
-      border: 1.5px solid #d0d5e0;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
+    .col-panel { border: 1.5px solid #d0d5e0; border-radius: 8px; overflow: hidden; }
     .col-panel-header {
-      background: #f4f6fb;
-      padding: 9px 13px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #16213e;
+      background: #f4f6fb; padding: 9px 13px;
+      font-size: 0.85rem; font-weight: 700; color: #16213e;
       border-bottom: 1px solid #d0d5e0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
     }
-
-    .col-panel-header .tag {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 12px;
-    }
-
+    .col-panel-header .tag { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
     .tag-mid { background: #dbeafe; color: #1e40af; }
     .tag-fin { background: #fce7f3; color: #9d174d; }
 
-    .col-checklist {
-      max-height: 240px;
-      overflow-y: auto;
-      background: white;
-    }
-
+    .col-checklist { max-height: 240px; overflow-y: auto; background: white; }
     .col-check-item {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 8px 13px;
-      border-bottom: 1px solid #f0f2f7;
-      font-size: 0.83rem;
-      cursor: pointer;
-      transition: background 0.12s;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 13px; border-bottom: 1px solid #f0f2f7;
+      font-size: 0.83rem; cursor: pointer; transition: background 0.12s;
     }
-
     .col-check-item:last-child { border-bottom: none; }
     .col-check-item:hover { background: #f7f9ff; }
+    .col-check-item.disabled { opacity: 0.38; pointer-events: none; }
+    .col-check-item input[type=checkbox] { width: 15px; height: 15px; accent-color: #0f3460; flex-shrink: 0; cursor: pointer; }
+    .col-check-item label { flex: 1; cursor: pointer; line-height: 1.3; }
+    .col-check-item .col-max { font-size: 0.75rem; color: #999; white-space: nowrap; flex-shrink: 0; }
 
-    .col-check-item.disabled {
-      opacity: 0.38;
-      pointer-events: none;
-    }
+    .col-panel-actions { padding: 6px 13px; background: #fafbfc; border-top: 1px solid #e8eaf0; display: flex; gap: 10px; }
+    .btn-text { background: none; border: none; color: #0f3460; font-size: 0.78rem; cursor: pointer; padding: 0; text-decoration: underline; font-family: inherit; }
 
-    .col-check-item input[type=checkbox] {
-      width: 15px; height: 15px;
-      accent-color: #0f3460;
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-
-    .col-check-item label {
-      flex: 1;
-      cursor: pointer;
-      line-height: 1.3;
-    }
-
-    .col-check-item .col-max {
-      font-size: 0.75rem;
-      color: #999;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .col-panel-actions {
-      padding: 6px 13px;
-      background: #fafbfc;
-      border-top: 1px solid #e8eaf0;
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn-text {
-      background: none;
-      border: none;
-      color: #0f3460;
-      font-size: 0.78rem;
-      cursor: pointer;
-      padding: 0;
-      text-decoration: underline;
-      font-family: inherit;
-    }
-
-    .max-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
+    .max-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
     .max-row input[type=number] { max-width: 120px; }
-    .max-row span { font-size: 0.85rem; color: #555; white-space: nowrap; }
 
-    /* Weights */
-    .weight-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .weight-box {
-      border: 1.5px solid #d0d5e0;
-      border-radius: 8px;
-      padding: 13px 15px;
-      background: #fafbfc;
-    }
-
-    .weight-input-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 7px;
-    }
-
+    .weight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .weight-box { border: 1.5px solid #d0d5e0; border-radius: 8px; padding: 13px 15px; background: #fafbfc; }
+    .weight-input-row { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
     .weight-input-row input { max-width: 90px; }
     .weight-input-row span { font-weight: 600; color: #555; }
 
-    .formula-box {
-      background: #f0f4ff;
-      border-radius: 7px;
-      padding: 11px 15px;
-      font-size: 0.81rem;
-      color: #333;
-      margin-top: 12px;
-      line-height: 1.8;
-    }
+    .formula-box { background: #f0f4ff; border-radius: 7px; padding: 11px 15px; font-size: 0.81rem; color: #333; margin-top: 12px; line-height: 1.8; }
 
-    /* Buttons */
-    .btn-primary {
-      background: #0f3460;
-      color: white;
-      border: none;
-      border-radius: 7px;
-      padding: 11px 26px;
-      font-size: 0.93rem;
-      font-family: inherit;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
+    .btn-primary { background: #0f3460; color: white; border: none; border-radius: 7px; padding: 11px 26px; font-size: 0.93rem; font-family: inherit; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     .btn-primary:hover { background: #16213e; }
     .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
 
-    .btn-success {
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 7px;
-      padding: 12px 28px;
-      font-size: 0.93rem;
-      font-family: inherit;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
+    .btn-success { background: #28a745; color: white; border: none; border-radius: 7px; padding: 12px 28px; font-size: 0.93rem; font-family: inherit; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     .btn-success:hover { background: #1e7e34; }
 
-    /* Summary */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .summary-box {
-      background: #f7f8fa;
-      border-radius: 8px;
-      padding: 13px;
-      text-align: center;
-    }
-
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .summary-box { background: #f7f8fa; border-radius: 8px; padding: 13px; text-align: center; }
     .summary-box .num { font-size: 1.7rem; font-weight: 700; color: #0f3460; }
     .summary-box .lbl { font-size: 0.79rem; color: #666; margin-top: 3px; }
 
-    .alert {
-      padding: 10px 14px;
-      border-radius: 7px;
-      font-size: 0.86rem;
-      margin-bottom: 16px;
-    }
-
+    .alert { padding: 10px 14px; border-radius: 7px; font-size: 0.86rem; margin-bottom: 16px; }
     .alert-warning { background: #fff3cd; border: 1px solid #ffc107; color: #856404; }
     .alert-info    { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
-
-    .missing-list {
-      margin-top: 7px;
-      max-height: 120px;
-      overflow-y: auto;
-      font-size: 0.81rem;
-      padding-right: 16px;
-    }
-
+    .missing-list { margin-top: 7px; max-height: 120px; overflow-y: auto; font-size: 0.81rem; padding-right: 16px; }
     .missing-list li { margin-bottom: 2px; }
+
+    footer { text-align: center; padding: 20px 16px 32px; font-size: 0.8rem; color: #888; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>محول درجات بلاك بورد</h1>
-  <p>تحويل درجات بلاك بورد إلى نموذج كشف الدرجات الجامعي</p>
+  <div>
+    <h1 data-i18n="headerTitle"></h1>
+    <p data-i18n="headerSub"></p>
+  </div>
+  <button class="lang-btn" onclick="toggleLang()" id="langBtn" data-i18n="langBtn"></button>
 </header>
 
 <main>
 
   <!-- STEP 1 -->
   <div class="card" id="step1">
-    <div class="card-title"><span class="step-badge">1</span> رفع الملفات</div>
-
+    <div class="card-title"><span class="step-badge">1</span> <span data-i18n="step1Title"></span></div>
     <div class="two-col">
       <div>
-        <label class="field-label">ملف بلاك بورد (.xls)</label>
+        <label class="field-label" data-i18n="bbFileLabel"></label>
         <div class="upload-zone" id="bbZone">
           <input type="file" id="bbFile" accept=".xls,.xlsx,.csv" />
-          <div class="upload-label">اضغط لرفع ملف بلاك بورد</div>
-          <div class="upload-sub">يحتوي على: اسم المستخدم، الدرجات</div>
+          <div class="upload-label" data-i18n="bbUploadLabel"></div>
+          <div class="upload-sub" data-i18n="bbUploadSub"></div>
           <div class="file-name" id="bbFileName"></div>
         </div>
       </div>
       <div>
-        <label class="field-label">ملف كشف الدرجات الجامعي (.xls)</label>
+        <label class="field-label" data-i18n="ugFileLabel"></label>
         <div class="upload-zone" id="ugZone">
           <input type="file" id="ugFile" accept=".xls,.xlsx" />
-          <div class="upload-label">اضغط لرفع كشف الدرجات</div>
-          <div class="upload-sub">يحتوي على: رقم الطالب، اسم الطالب</div>
+          <div class="upload-label" data-i18n="ugUploadLabel"></div>
+          <div class="upload-sub" data-i18n="ugUploadSub"></div>
           <div class="file-name" id="ugFileName"></div>
         </div>
       </div>
     </div>
-
     <div style="margin-top:18px; text-align:left">
-      <button class="btn-primary" id="btnParse" disabled onclick="parseFiles()">تحليل الملفات</button>
+      <button class="btn-primary" id="btnParse" disabled onclick="parseFiles()" data-i18n="btnParse"></button>
     </div>
   </div>
 
   <!-- STEP 2 -->
   <div class="card" id="step2">
-    <div class="card-title"><span class="step-badge">2</span> إعداد التحويل</div>
+    <div class="card-title"><span class="step-badge">2</span> <span data-i18n="step2Title"></span></div>
 
-    <!-- Has final? -->
     <div class="field-group">
-      <label class="field-label">هل يحتوي ملف بلاك بورد على درجات الاختبار النهائي؟</label>
+      <label class="field-label" data-i18n="hasFinalLabel"></label>
       <div class="radio-group">
         <label class="radio-option">
           <input type="radio" name="hasFinal" value="yes" onchange="toggleFinalSection()" />
-          نعم، توجد أعمدة للنهائي
+          <span data-i18n="hasFinalYes"></span>
         </label>
         <label class="radio-option">
           <input type="radio" name="hasFinal" value="no" onchange="toggleFinalSection()" checked />
-          لا، فصلي فقط
+          <span data-i18n="hasFinalNo"></span>
         </label>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- Weights -->
     <div class="field-group">
-      <label class="field-label">أوزان الدرجات في الكشف الجامعي</label>
+      <label class="field-label" data-i18n="weightsLabel"></label>
       <div class="weight-row">
         <div class="weight-box">
-          <div class="field-label">الدرجة الكاملة للفصلي</div>
+          <div class="field-label" data-i18n="midWeightLabel"></div>
           <div class="weight-input-row">
             <input type="number" id="midtermWeight" min="1" max="200" value="60" oninput="updateFormulaInfo()" />
-            <span>درجة</span>
+            <span data-i18n="gradeUnit"></span>
           </div>
         </div>
         <div class="weight-box" id="finalWeightBox" style="display:none">
-          <div class="field-label">الدرجة الكاملة للنهائي</div>
+          <div class="field-label" data-i18n="finWeightLabel"></div>
           <div class="weight-input-row">
             <input type="number" id="finalWeight" min="1" max="200" value="40" oninput="updateFormulaInfo()" />
-            <span>درجة</span>
+            <span data-i18n="gradeUnit"></span>
           </div>
         </div>
       </div>
@@ -455,90 +281,225 @@
 
     <div class="divider"></div>
 
-    <!-- Column assignment panels -->
     <div class="field-group">
-      <label class="field-label">تعيين أعمدة بلاك بورد</label>
-      <p class="hint" style="margin-bottom:12px">حدد الأعمدة لكل فئة — اختيار عمود في النهائي يزيله تلقائياً من الفصلي</p>
-
+      <label class="field-label" data-i18n="colAssignLabel"></label>
+      <p class="hint" style="margin-bottom:12px" data-i18n="colAssignHint"></p>
       <div class="col-panels" id="colPanels">
-        <!-- Midterm panel -->
         <div>
           <div class="col-panel">
             <div class="col-panel-header">
-              أعمدة الفصلي <span class="tag tag-mid">فصلي</span>
+              <span data-i18n="midPanelTitle"></span>
+              <span class="tag tag-mid" data-i18n="midTag"></span>
             </div>
             <div class="col-checklist" id="midtermCols"></div>
             <div class="col-panel-actions">
-              <button class="btn-text" onclick="selectAll('mid')">تحديد الكل</button>
-              <button class="btn-text" onclick="deselectAll('mid')">إلغاء الكل</button>
+              <button class="btn-text" onclick="selectAll('mid')" data-i18n="selectAll"></button>
+              <button class="btn-text" onclick="deselectAll('mid')" data-i18n="deselectAll"></button>
             </div>
           </div>
           <div class="max-row">
-            <label class="field-label" style="margin:0; white-space:nowrap">مجموع الدرجة الكاملة للفصلي:</label>
-            <input type="number" id="midtermMax" min="1" max="10000" placeholder="تلقائي" />
+            <label class="field-label" style="margin:0; white-space:nowrap" data-i18n="midMaxLabel"></label>
+            <input type="number" id="midtermMax" min="1" max="10000" />
           </div>
-          <p class="hint">يُحسب تلقائياً من مجموع الأعمدة المختارة. يمكنك تعديله يدوياً.</p>
+          <p class="hint" data-i18n="autoCalcHint"></p>
         </div>
-
-        <!-- Final panel (hidden if no final) -->
         <div id="finalPanel" style="display:none">
           <div class="col-panel">
             <div class="col-panel-header">
-              أعمدة النهائي <span class="tag tag-fin">نهائي</span>
+              <span data-i18n="finPanelTitle"></span>
+              <span class="tag tag-fin" data-i18n="finTag"></span>
             </div>
             <div class="col-checklist" id="finalCols"></div>
             <div class="col-panel-actions">
-              <button class="btn-text" onclick="selectAll('fin')">تحديد الكل</button>
-              <button class="btn-text" onclick="deselectAll('fin')">إلغاء الكل</button>
+              <button class="btn-text" onclick="selectAll('fin')" data-i18n="selectAll"></button>
+              <button class="btn-text" onclick="deselectAll('fin')" data-i18n="deselectAll"></button>
             </div>
           </div>
           <div class="max-row">
-            <label class="field-label" style="margin:0; white-space:nowrap">مجموع الدرجة الكاملة للنهائي:</label>
-            <input type="number" id="finalMax" min="1" max="10000" placeholder="تلقائي" />
+            <label class="field-label" style="margin:0; white-space:nowrap" data-i18n="finMaxLabel"></label>
+            <input type="number" id="finalMax" min="1" max="10000" />
           </div>
-          <p class="hint">يُحسب تلقائياً من مجموع الأعمدة المختارة. يمكنك تعديله يدوياً.</p>
+          <p class="hint" data-i18n="autoCalcHint"></p>
         </div>
       </div>
-
       <div class="formula-box" id="formulaInfo" style="margin-top:14px"></div>
     </div>
 
     <div style="margin-top:22px; text-align:left">
-      <button class="btn-primary" onclick="processGrades()">تحويل الدرجات</button>
+      <button class="btn-primary" onclick="processGrades()" data-i18n="btnConvert"></button>
     </div>
   </div>
 
   <!-- STEP 3 -->
   <div class="card" id="step3">
-    <div class="card-title"><span class="step-badge">3</span> النتائج والتحميل</div>
+    <div class="card-title"><span class="step-badge">3</span> <span data-i18n="step3Title"></span></div>
     <div class="summary-grid" id="summaryGrid"></div>
     <div id="missingAlert"></div>
-    <button class="btn-success" onclick="downloadResult()">تحميل كشف الدرجات المحدّث</button>
+    <button class="btn-success" onclick="downloadResult()" data-i18n="btnDownload"></button>
   </div>
 
 </main>
 
+<footer>
+  &copy; 2026 <a href="https://saasiri1.github.io" target="_blank" rel="noopener" style="color:#888; text-decoration:underline;">saasiri1</a>.
+  <span data-i18n="footerRights"></span>
+</footer>
+
 <script>
-let bbData = null;
-let ugWorkbook = null;
-let ugHeaderRow = -1;
-let bbColumns = [];
-let resultWorkbook = null;
-// per-column max points map (col name → max)
-let colMaxMap = {};
+// ── i18n ──────────────────────────────────────────────────────────────────────
+
+const translations = {
+  ar: {
+    headerTitle:    'محول درجات بلاك بورد',
+    headerSub:      'تحويل درجات بلاك بورد إلى نموذج كشف الدرجات الجامعي',
+    langBtn:        'English',
+    step1Title:     'رفع الملفات',
+    bbFileLabel:    'ملف بلاك بورد (.xls)',
+    bbUploadLabel:  'اضغط لرفع ملف بلاك بورد',
+    bbUploadSub:    'يحتوي على: اسم المستخدم، الدرجات',
+    ugFileLabel:    'ملف كشف الدرجات الجامعي (.xls)',
+    ugUploadLabel:  'اضغط لرفع كشف الدرجات',
+    ugUploadSub:    'يحتوي على: رقم الطالب، اسم الطالب',
+    btnParse:       'تحليل الملفات',
+    step2Title:     'إعداد التحويل',
+    hasFinalLabel:  'هل يحتوي ملف بلاك بورد على درجات الاختبار النهائي؟',
+    hasFinalYes:    'نعم، توجد أعمدة للنهائي',
+    hasFinalNo:     'لا، فصلي فقط',
+    weightsLabel:   'أوزان الدرجات في الكشف الجامعي',
+    midWeightLabel: 'الدرجة الكاملة للفصلي',
+    finWeightLabel: 'الدرجة الكاملة للنهائي',
+    gradeUnit:      'درجة',
+    colAssignLabel: 'تعيين أعمدة بلاك بورد',
+    colAssignHint:  'حدد الأعمدة لكل فئة — اختيار عمود في فئة يزيله تلقائياً من الفئة الأخرى',
+    midPanelTitle:  'أعمدة الفصلي',
+    midTag:         'فصلي',
+    finPanelTitle:  'أعمدة النهائي',
+    finTag:         'نهائي',
+    selectAll:      'تحديد الكل',
+    deselectAll:    'إلغاء الكل',
+    midMaxLabel:    'مجموع الدرجة الكاملة للفصلي:',
+    finMaxLabel:    'مجموع الدرجة الكاملة للنهائي:',
+    autoCalcHint:   'يُحسب تلقائياً من مجموع الأعمدة المختارة. يمكنك تعديله يدوياً.',
+    btnConvert:     'تحويل الدرجات',
+    step3Title:     'النتائج والتحميل',
+    btnDownload:    'تحميل كشف الدرجات المحدّث',
+    footerRights:   'جميع الحقوق محفوظة. | All Rights Reserved.',
+    totalStudents:  'إجمالي الطلاب',
+    updated:        'تم تحديث درجاتهم',
+    notFound:       'غير موجودين في بلاك بورد',
+    warnTitle:      'تنبيه',
+    warnMsg:        'الطلاب التاليون في الكشف الجامعي لم يُعثر عليهم في بلاك بورد:',
+    successMsg:     'تم العثور على جميع الطلاب في بلاك بورد بنجاح.',
+    errMidCol:      'يرجى اختيار عمود واحد على الأقل للدرجة الفصلية',
+    errMidMax:      'يرجى إدخال الدرجة الكاملة للفصلي',
+    errFinCol:      'يرجى اختيار عمود واحد على الأقل للدرجة النهائية',
+    errFinMax:      'يرجى إدخال الدرجة الكاملة للنهائي',
+    formulaMid:     (mw) => `درجة الفصلي (من ${mw}) = (مجموع الأعمدة الفصلية ÷ الدرجة الكاملة) × ${mw}`,
+    formulaFin:     (fw) => `درجة النهائي (من ${fw}) = (مجموع الأعمدة النهائية ÷ الدرجة الكاملة) × ${fw}`,
+    formulaNoFin:   'درجة النهائي = لا يوجد',
+    formulaTotal:   (hasFinal) => `الدرجة الكلية = الفصلي${hasFinal ? ' + النهائي' : ''}`,
+    outOf:          (n) => `من ${n}`,
+    placeholder:    'تلقائي',
+  },
+  en: {
+    headerTitle:    'Blackboard Grade Converter',
+    headerSub:      'Convert Blackboard grades into the university grade sheet format',
+    langBtn:        'العربية',
+    step1Title:     'Upload Files',
+    bbFileLabel:    'Blackboard File (.xls)',
+    bbUploadLabel:  'Click to upload Blackboard file',
+    bbUploadSub:    'Contains: Username, Grades',
+    ugFileLabel:    'University Grade Sheet (.xls)',
+    ugUploadLabel:  'Click to upload grade sheet',
+    ugUploadSub:    'Contains: Student Number, Name',
+    btnParse:       'Analyse Files',
+    step2Title:     'Configure Conversion',
+    hasFinalLabel:  'Does the Blackboard file include Final Exam grades?',
+    hasFinalYes:    'Yes, final exam columns exist',
+    hasFinalNo:     'No, midterm only',
+    weightsLabel:   'Grade weights in the university sheet',
+    midWeightLabel: 'Full marks for Midterm',
+    finWeightLabel: 'Full marks for Final',
+    gradeUnit:      'pts',
+    colAssignLabel: 'Assign Blackboard columns',
+    colAssignHint:  'Select columns for each category — picking a column in one category removes it from the other',
+    midPanelTitle:  'Midterm Columns',
+    midTag:         'Midterm',
+    finPanelTitle:  'Final Columns',
+    finTag:         'Final',
+    selectAll:      'Select all',
+    deselectAll:    'Deselect all',
+    midMaxLabel:    'Total full marks for Midterm:',
+    finMaxLabel:    'Total full marks for Final:',
+    autoCalcHint:   'Auto-calculated from selected columns. You can override it manually.',
+    btnConvert:     'Convert Grades',
+    step3Title:     'Results & Download',
+    btnDownload:    'Download Updated Grade Sheet',
+    footerRights:   'All Rights Reserved. | جميع الحقوق محفوظة.',
+    totalStudents:  'Total Students',
+    updated:        'Grades Updated',
+    notFound:       'Not Found in Blackboard',
+    warnTitle:      'Warning',
+    warnMsg:        'The following students are in the university sheet but were not found in Blackboard:',
+    successMsg:     'All students were successfully matched in Blackboard.',
+    errMidCol:      'Please select at least one Midterm column',
+    errMidMax:      'Please enter the full marks for Midterm',
+    errFinCol:      'Please select at least one Final column',
+    errFinMax:      'Please enter the full marks for Final',
+    formulaMid:     (mw) => `Midterm (out of ${mw}) = (sum of midterm columns ÷ full marks) × ${mw}`,
+    formulaFin:     (fw) => `Final (out of ${fw}) = (sum of final columns ÷ full marks) × ${fw}`,
+    formulaNoFin:   'Final = N/A',
+    formulaTotal:   (hasFinal) => `Total = Midterm${hasFinal ? ' + Final' : ''}`,
+    outOf:          (n) => `/ ${n}`,
+    placeholder:    'Auto',
+  }
+};
+
+let lang = 'ar';
+
+function t(key, ...args) {
+  const val = translations[lang][key];
+  return typeof val === 'function' ? val(...args) : (val || key);
+}
+
+function applyLang() {
+  const html = document.documentElement;
+  html.lang = lang;
+  html.dir  = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = lang === 'ar'
+    ? 'محول درجات بلاك بورد'
+    : 'Blackboard Grade Converter';
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  // Update placeholder on max inputs
+  document.getElementById('midtermMax').placeholder = t('placeholder');
+  document.getElementById('finalMax').placeholder    = t('placeholder');
+
+  // Refresh formula info if step2 is visible
+  if (document.getElementById('step2').classList.contains('visible')) {
+    updateFormulaInfo();
+  }
+}
+
+function toggleLang() {
+  lang = lang === 'ar' ? 'en' : 'ar';
+  applyLang();
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+let bbData = null, ugWorkbook = null, ugHeaderRow = -1, bbColumns = [], resultWorkbook = null;
 
 const readAsArrayBuffer = f => new Promise((res, rej) => {
   const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsArrayBuffer(f);
 });
-
 const readAsText = (f, enc) => new Promise((res, rej) => {
   const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(f, enc);
 });
-
 const normalizeNum = v => String(v || '').trim().replace(/\.0+$/, '');
-
 const toColLetter = idx => {
   let s = ''; idx++;
   while (idx > 0) { s = String.fromCharCode(64 + (idx % 26 || 26)) + s; idx = Math.floor((idx - 1) / 26); }
@@ -548,10 +509,9 @@ const toColLetter = idx => {
 // ── Upload zones ──────────────────────────────────────────────────────────────
 
 ['bb', 'ug'].forEach(id => {
-  const zone = document.getElementById(id + 'Zone');
+  const zone  = document.getElementById(id + 'Zone');
   const input = document.getElementById(id + 'File');
   const nameEl = document.getElementById(id + 'FileName');
-
   input.addEventListener('change', () => {
     if (input.files[0]) { nameEl.textContent = input.files[0].name; zone.classList.add('has-file'); checkBothUploaded(); }
   });
@@ -569,13 +529,12 @@ function checkBothUploaded() {
     !(document.getElementById('bbFile').files[0] && document.getElementById('ugFile').files[0]);
 }
 
-// ── Toggle final section ──────────────────────────────────────────────────────
+// ── Final section toggle ──────────────────────────────────────────────────────
 
 function toggleFinalSection() {
   const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
-  document.getElementById('finalPanel').style.display = hasFinal ? '' : 'none';
+  document.getElementById('finalPanel').style.display    = hasFinal ? '' : 'none';
   document.getElementById('finalWeightBox').style.display = hasFinal ? '' : 'none';
-  // Re-enable all midterm items when switching to no-final
   if (!hasFinal) {
     document.querySelectorAll('#midtermCols .col-check-item').forEach(el => el.classList.remove('disabled'));
     document.querySelectorAll('#midtermCols input[type=checkbox]').forEach(cb => cb.disabled = false);
@@ -587,13 +546,11 @@ function toggleFinalSection() {
 function updateFormulaInfo() {
   const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
   const mw = document.getElementById('midtermWeight').value || 60;
-  const fw = document.getElementById('finalWeight').value || 40;
+  const fw = document.getElementById('finalWeight').value   || 40;
   document.getElementById('formulaInfo').innerHTML =
-    `درجة الفصلي (من ${mw}) = (مجموع الأعمدة الفصلية المختارة ÷ الدرجة الكاملة للفصلي) × ${mw}<br>` +
-    (hasFinal
-      ? `درجة النهائي (من ${fw}) = (مجموع الأعمدة النهائية المختارة ÷ الدرجة الكاملة للنهائي) × ${fw}<br>`
-      : `درجة النهائي = لا يوجد<br>`) +
-    `الدرجة الكلية = الفصلي${hasFinal ? ' + النهائي' : ''}`;
+    t('formulaMid', mw) + '<br>' +
+    (hasFinal ? t('formulaFin', fw) : t('formulaNoFin')) + '<br>' +
+    t('formulaTotal', hasFinal);
 }
 
 // ── Parse files ───────────────────────────────────────────────────────────────
@@ -602,16 +559,14 @@ async function parseFiles() {
   const bbFile = document.getElementById('bbFile').files[0];
   const ugFile = document.getElementById('ugFile').files[0];
 
-  // Parse blackboard (UTF-16 TSV or xlsx fallback)
   try {
     const text = await readAsText(bbFile, 'UTF-16LE');
     const lines = text.split('\n').filter(l => l.trim());
     const parseLine = l => l.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
     const headers = parseLine(lines[0]);
     bbData = lines.slice(1).map(line => {
-      const vals = parseLine(line);
-      const row = {}; headers.forEach((h, i) => row[h] = vals[i] || '');
-      return row;
+      const vals = parseLine(line); const row = {};
+      headers.forEach((h, i) => row[h] = vals[i] || ''); return row;
     }).filter(r => r[headers[0]]);
     bbColumns = headers.slice(6);
   } catch {
@@ -621,21 +576,17 @@ async function parseFiles() {
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
     const headers = rows[0];
     bbData = rows.slice(1).map(vals => {
-      const row = {}; headers.forEach((h, i) => row[h] = vals[i] !== undefined ? String(vals[i]) : '');
-      return row;
+      const row = {}; headers.forEach((h, i) => row[h] = vals[i] !== undefined ? String(vals[i]) : ''); return row;
     }).filter(r => r[headers[0]]);
     bbColumns = headers.slice(6);
   }
 
-  // Parse university grader
   const ugBuf = await readAsArrayBuffer(ugFile);
   ugWorkbook = XLSX.read(ugBuf, { type: 'array', cellStyles: true });
   const ugSheet = ugWorkbook.Sheets[ugWorkbook.SheetNames[0]];
   const allRows = XLSX.utils.sheet_to_json(ugSheet, { header: 1, defval: '' });
   ugHeaderRow = allRows.findIndex(row => row.some(c => String(c).includes('رقم الطالب')));
 
-  // Build checklist items for both panels
-  colMaxMap = {};
   const midList = document.getElementById('midtermCols');
   const finList = document.getElementById('finalCols');
   midList.innerHTML = ''; finList.innerHTML = '';
@@ -644,30 +595,21 @@ async function parseFiles() {
     if (!col) return;
     const m = col.match(/النقاط:\s*([\d.]+)/);
     const maxPts = m ? parseFloat(m[1]) : null;
-    if (maxPts !== null) colMaxMap[col] = maxPts;
-    const short = col.length > 65 ? col.substring(0, 62) + '...' : col;
+    const short  = col.length > 65 ? col.substring(0, 62) + '...' : col;
+    const maxLabel = maxPts !== null ? `<span class="col-max">${t('outOf', maxPts)}</span>` : '';
 
-    // Midterm item
-    const midItem = document.createElement('div');
-    midItem.className = 'col-check-item';
-    midItem.dataset.col = col;
-    midItem.innerHTML = `
-      <input type="checkbox" id="m_${idx}" data-col="${col}" data-max="${maxPts || 0}" onchange="onMidChange()" />
-      <label for="m_${idx}">${short}</label>
-      ${maxPts !== null ? `<span class="col-max">من ${maxPts}</span>` : ''}
-    `;
-    midList.appendChild(midItem);
+    const makeItem = (prefix, handler) => {
+      const item = document.createElement('div');
+      item.className = 'col-check-item';
+      item.dataset.col = col;
+      item.innerHTML = `
+        <input type="checkbox" id="${prefix}_${idx}" data-col="${col}" data-max="${maxPts || 0}" onchange="${handler}()" />
+        <label for="${prefix}_${idx}">${short}</label>${maxLabel}`;
+      return item;
+    };
 
-    // Final item (same columns)
-    const finItem = document.createElement('div');
-    finItem.className = 'col-check-item';
-    finItem.dataset.col = col;
-    finItem.innerHTML = `
-      <input type="checkbox" id="f_${idx}" data-col="${col}" data-max="${maxPts || 0}" onchange="onFinChange()" />
-      <label for="f_${idx}">${short}</label>
-      ${maxPts !== null ? `<span class="col-max">من ${maxPts}</span>` : ''}
-    `;
-    finList.appendChild(finItem);
+    midList.appendChild(makeItem('m', 'onMidChange'));
+    finList.appendChild(makeItem('f', 'onFinChange'));
   });
 
   document.getElementById('step2').classList.add('visible');
@@ -677,11 +619,7 @@ async function parseFiles() {
 
 // ── Panel sync ────────────────────────────────────────────────────────────────
 
-// When a Final column is checked → disable it in Midterm list
-function onFinChange() {
-  syncPanels();
-  autoSumMax('fin', 'finalMax');
-}
+function onFinChange() { syncPanels(); autoSumMax('fin', 'finalMax'); }
 
 function onMidChange() {
   const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
@@ -689,16 +627,9 @@ function onMidChange() {
     const checkedMid = new Set();
     document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => checkedMid.add(cb.dataset.col));
     document.querySelectorAll('#finalCols .col-check-item').forEach(item => {
-      const col = item.dataset.col;
       const cb = item.querySelector('input');
-      if (checkedMid.has(col)) {
-        cb.checked = false;
-        cb.disabled = true;
-        item.classList.add('disabled');
-      } else {
-        cb.disabled = false;
-        item.classList.remove('disabled');
-      }
+      if (checkedMid.has(item.dataset.col)) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+      else { cb.disabled = false; item.classList.remove('disabled'); }
     });
     autoSumMax('fin', 'finalMax');
   }
@@ -708,123 +639,81 @@ function onMidChange() {
 function syncPanels() {
   const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
   if (!hasFinal) return;
-
   const checkedFin = new Set();
   document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => checkedFin.add(cb.dataset.col));
-
   document.querySelectorAll('#midtermCols .col-check-item').forEach(item => {
-    const col = item.dataset.col;
     const cb = item.querySelector('input');
-    if (checkedFin.has(col)) {
-      cb.checked = false;
-      cb.disabled = true;
-      item.classList.add('disabled');
-    } else {
-      cb.disabled = false;
-      item.classList.remove('disabled');
-    }
+    if (checkedFin.has(item.dataset.col)) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+    else { cb.disabled = false; item.classList.remove('disabled'); }
   });
-
   autoSumMax('mid', 'midtermMax');
 }
 
 function autoSumMax(panel, inputId) {
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
   let total = 0;
-  document.querySelectorAll(`${selector} input[type=checkbox]:checked`).forEach(cb => {
+  document.querySelectorAll(`#${panel === 'mid' ? 'midtermCols' : 'finalCols'} input[type=checkbox]:checked`).forEach(cb => {
     total += parseFloat(cb.dataset.max) || 0;
   });
   if (total > 0) document.getElementById(inputId).value = total;
 }
 
 function selectAll(panel) {
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
-  document.querySelectorAll(`${selector} input[type=checkbox]:not(:disabled)`).forEach(cb => { cb.checked = true; });
-  if (panel === 'mid') { onMidChange(); } else { onFinChange(); }
+  document.querySelectorAll(`#${panel === 'mid' ? 'midtermCols' : 'finalCols'} input[type=checkbox]:not(:disabled)`).forEach(cb => cb.checked = true);
+  panel === 'mid' ? onMidChange() : onFinChange();
 }
 
 function deselectAll(panel) {
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
-  document.querySelectorAll(`${selector} input[type=checkbox]`).forEach(cb => { cb.checked = false; });
-  if (panel === 'mid') { onMidChange(); } else { onFinChange(); }
+  document.querySelectorAll(`#${panel === 'mid' ? 'midtermCols' : 'finalCols'} input[type=checkbox]`).forEach(cb => cb.checked = false);
+  panel === 'mid' ? onMidChange() : onFinChange();
 }
 
 // ── Letter grade ──────────────────────────────────────────────────────────────
 
 function letterGrade(total) {
-  if (total >= 95) return 'A+';
-  if (total >= 90) return 'A';
-  if (total >= 85) return 'B+';
-  if (total >= 80) return 'B';
-  if (total >= 75) return 'C+';
-  if (total >= 70) return 'C';
-  if (total >= 65) return 'D+';
-  if (total >= 60) return 'D';
+  if (total >= 95) return 'A+';  if (total >= 90) return 'A';
+  if (total >= 85) return 'B+';  if (total >= 80) return 'B';
+  if (total >= 75) return 'C+';  if (total >= 70) return 'C';
+  if (total >= 65) return 'D+';  if (total >= 60) return 'D';
   return 'F';
 }
 
 // ── Process grades ────────────────────────────────────────────────────────────
 
 function processGrades() {
-  const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
-  const midtermWeight = parseFloat(document.getElementById('midtermWeight').value) || 60;
-  const finalWeight   = parseFloat(document.getElementById('finalWeight').value)   || 40;
-  const midMax = parseFloat(document.getElementById('midtermMax').value);
-  const finalMax = parseFloat(document.getElementById('finalMax').value);
+  const hasFinal       = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const midtermWeight  = parseFloat(document.getElementById('midtermWeight').value) || 60;
+  const finalWeight    = parseFloat(document.getElementById('finalWeight').value)   || 40;
+  const midMax         = parseFloat(document.getElementById('midtermMax').value);
+  const finalMax       = parseFloat(document.getElementById('finalMax').value);
 
-  const selectedMidCols = [];
+  const selectedMidCols = [], selectedFinCols = [];
   document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => selectedMidCols.push(cb.dataset.col));
+  if (hasFinal) document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => selectedFinCols.push(cb.dataset.col));
 
-  const selectedFinCols = [];
-  if (hasFinal) {
-    document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => selectedFinCols.push(cb.dataset.col));
-  }
+  if (selectedMidCols.length === 0)                        { alert(t('errMidCol')); return; }
+  if (isNaN(midMax) || midMax <= 0)                        { alert(t('errMidMax')); return; }
+  if (hasFinal && selectedFinCols.length === 0)            { alert(t('errFinCol')); return; }
+  if (hasFinal && (isNaN(finalMax) || finalMax <= 0))      { alert(t('errFinMax')); return; }
 
-  if (selectedMidCols.length === 0) { alert('يرجى اختيار عمود واحد على الأقل للدرجة الفصلية'); return; }
-  if (isNaN(midMax) || midMax <= 0)  { alert('يرجى إدخال الدرجة الكاملة للفصلي'); return; }
-  if (hasFinal && selectedFinCols.length === 0) { alert('يرجى اختيار عمود واحد على الأقل للدرجة النهائية'); return; }
-  if (hasFinal && (isNaN(finalMax) || finalMax <= 0)) { alert('يرجى إدخال الدرجة الكاملة للنهائي'); return; }
+  const usernameKey = Object.keys(bbData[0]).find(k => k.includes('اسم المستخدم') || k.toLowerCase().includes('username'));
 
-  // Detect username column in blackboard
-  const usernameKey = Object.keys(bbData[0]).find(k =>
-    k.includes('اسم المستخدم') || k.toLowerCase().includes('username')
-  );
-
-  // Build lookup: student number → {midterm, final}
   const bbLookup = {};
   bbData.forEach(row => {
-    const num = normalizeNum(row[usernameKey]);
-    if (!num) return;
-
-    let midSum = 0, midHas = false;
-    selectedMidCols.forEach(col => {
-      const v = parseFloat(row[col]);
-      if (!isNaN(v)) { midSum += v; midHas = true; }
-    });
-
-    let finSum = 0, finHas = false;
-    if (hasFinal) {
-      selectedFinCols.forEach(col => {
-        const v = parseFloat(row[col]);
-        if (!isNaN(v)) { finSum += v; finHas = true; }
-      });
-    }
-
+    const num = normalizeNum(row[usernameKey]); if (!num) return;
+    let midSum = 0, midHas = false, finSum = 0, finHas = false;
+    selectedMidCols.forEach(col => { const v = parseFloat(row[col]); if (!isNaN(v)) { midSum += v; midHas = true; } });
+    if (hasFinal) selectedFinCols.forEach(col => { const v = parseFloat(row[col]); if (!isNaN(v)) { finSum += v; finHas = true; } });
     bbLookup[num] = {
       midterm: midHas ? (midSum / midMax) * midtermWeight : null,
       final:   (hasFinal && finHas) ? (finSum / finalMax) * finalWeight : null,
     };
   });
 
-  // Read university grader sheet
   const sheetName = ugWorkbook.SheetNames[0];
-  const srcSheet = ugWorkbook.Sheets[sheetName];
+  const srcSheet  = ugWorkbook.Sheets[sheetName];
+  const allRows   = XLSX.utils.sheet_to_json(srcSheet, { header: 1, defval: '' });
+  const cleanRows = allRows.slice(ugHeaderRow);
 
-  // Get all rows then slice from header row (removes metadata rows 0–ugHeaderRow-1)
-  const allRows = XLSX.utils.sheet_to_json(srcSheet, { header: 1, defval: '' });
-  const cleanRows = allRows.slice(ugHeaderRow); // row 0 = header, rows 1+ = students
-
-  // Find column indices from header
   const hdr = cleanRows[0];
   const colStudentNum = hdr.findIndex(c => String(c).includes('رقم الطالب'));
   const colMidterm    = hdr.findIndex(c => String(c).includes('فصلي'));
@@ -835,49 +724,38 @@ function processGrades() {
   let matched = 0, totalStudents = 0;
   const missingStudents = [];
 
-  // Process each student row (start at index 1, skip header at 0)
   for (let i = 1; i < cleanRows.length; i++) {
     const row = cleanRows[i];
     const studentNum = normalizeNum(row[colStudentNum]);
     if (!studentNum) continue;
     totalStudents++;
-
-    // Skip excused students (ع in التقدير column)
     if (String(row[colGrade] || '').trim() === 'ع') continue;
-
     const grades = bbLookup[studentNum];
     if (!grades) { missingStudents.push(studentNum); continue; }
-
     matched++;
     const midVal = grades.midterm !== null ? parseFloat(grades.midterm.toFixed(2)) : null;
     const finVal = (hasFinal && grades.final !== null) ? parseFloat(grades.final.toFixed(2)) : null;
-
-    // Write into cleanRows array
     if (colMidterm >= 0 && midVal !== null) cleanRows[i][colMidterm] = midVal;
     if (hasFinal && colFinal >= 0 && finVal !== null) cleanRows[i][colFinal] = finVal;
-
     const total = (midVal || 0) + (finVal || 0);
     if (colTotal >= 0) cleanRows[i][colTotal] = parseFloat(total.toFixed(2));
     if (colGrade >= 0 && (midVal !== null || finVal !== null)) cleanRows[i][colGrade] = letterGrade(total);
   }
 
-  // Build output sheet from the modified clean rows
   const newSheet = XLSX.utils.aoa_to_sheet(cleanRows);
-
   resultWorkbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(resultWorkbook, newSheet, sheetName);
 
-  // Summary
   document.getElementById('summaryGrid').innerHTML = `
-    <div class="summary-box"><div class="num">${totalStudents}</div><div class="lbl">إجمالي الطلاب</div></div>
-    <div class="summary-box"><div class="num" style="color:#28a745">${matched}</div><div class="lbl">تم تحديث درجاتهم</div></div>
-    <div class="summary-box"><div class="num" style="color:#dc3545">${missingStudents.length}</div><div class="lbl">غير موجودين في بلاك بورد</div></div>
+    <div class="summary-box"><div class="num">${totalStudents}</div><div class="lbl">${t('totalStudents')}</div></div>
+    <div class="summary-box"><div class="num" style="color:#28a745">${matched}</div><div class="lbl">${t('updated')}</div></div>
+    <div class="summary-box"><div class="num" style="color:#dc3545">${missingStudents.length}</div><div class="lbl">${t('notFound')}</div></div>
   `;
 
   document.getElementById('missingAlert').innerHTML = missingStudents.length > 0
-    ? `<div class="alert alert-warning"><strong>تنبيه:</strong> الطلاب التاليون في الكشف الجامعي لم يُعثر عليهم في بلاك بورد:
+    ? `<div class="alert alert-warning"><strong>${t('warnTitle')}:</strong> ${t('warnMsg')}
         <ul class="missing-list">${missingStudents.map(s => `<li>${s}</li>`).join('')}</ul></div>`
-    : `<div class="alert alert-info">تم العثور على جميع الطلاب في بلاك بورد بنجاح.</div>`;
+    : `<div class="alert alert-info">${t('successMsg')}</div>`;
 
   document.getElementById('step3').classList.add('visible');
   document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -887,8 +765,12 @@ function processGrades() {
 
 function downloadResult() {
   if (!resultWorkbook) return;
-  XLSX.writeFile(resultWorkbook, 'كشف_الدرجات_المحدّث.xlsx');
+  XLSX.writeFile(resultWorkbook, lang === 'ar' ? 'كشف_الدرجات_المحدّث.xlsx' : 'Updated_Grade_Sheet.xlsx');
 }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+applyLang();
 </script>
 </body>
 </html>
