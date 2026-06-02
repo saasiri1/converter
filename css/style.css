@@ -143,6 +143,30 @@ input[type=number]:focus { border-color: #0f3460; }
 
 .radio-option input { accent-color: #0f3460; }
 
+/* ── Upload Note ──────────────────────────────────────────────────────────── */
+
+.upload-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  background: #f0f4ff;
+  border: 1px solid #c7d7fc;
+  border-radius: 7px;
+  font-size: 0.79rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+.upload-note-icon {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 /* ── Upload Zone ──────────────────────────────────────────────────────────── */
 
 .upload-zone {
@@ -215,8 +239,9 @@ input[type=number]:focus { border-color: #0f3460; }
 
 .col-panel-header .tag { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
 
-.tag-mid { background: #dbeafe; color: #1e40af; }
-.tag-fin { background: #fce7f3; color: #9d174d; }
+.tag-mid   { background: #dbeafe; color: #1e40af; }
+.tag-fin   { background: #fce7f3; color: #9d174d; }
+.tag-extra { background: #fef9c3; color: #854d0e; }
 
 .col-checklist { max-height: 240px; overflow-y: auto; background: white; }
 
@@ -299,6 +324,42 @@ input[type=number]:focus { border-color: #0f3460; }
 }
 
 .btn-success:hover { background: #1e7e34; }
+
+/* ── Selects ──────────────────────────────────────────────────────────────── */
+
+select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #d0d5e0;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: white;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+
+select:focus { border-color: #0f3460; }
+
+/* ── Extra Credit Toggle ──────────────────────────────────────────────────── */
+
+.extra-credit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.extra-credit-toggle input[type=checkbox] {
+  width: 16px; height: 16px;
+  accent-color: #0f3460;
+  cursor: pointer;
+}
 
 /* ── Step visibility ──────────────────────────────────────────────────────── */
 

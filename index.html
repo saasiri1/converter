@@ -35,6 +35,10 @@
           <div class="upload-sub"   data-i18n="bbUploadSub"></div>
           <div class="file-name"    id="bbFileName"></div>
         </div>
+        <div class="upload-note" id="bbNote">
+          <span class="upload-note-icon">ℹ</span>
+          <span data-i18n="bbNote"></span>
+        </div>
       </div>
       <div>
         <label class="field-label" data-i18n="ugFileLabel"></label>
@@ -59,6 +63,7 @@
       <span data-i18n="step2Title"></span>
     </div>
 
+    <!-- Has Final? -->
     <div class="field-group">
       <label class="field-label" data-i18n="hasFinalLabel"></label>
       <div class="radio-group">
@@ -73,8 +78,61 @@
       </div>
     </div>
 
+    <!-- Final source (BB vs separate file) -->
+    <div id="finalSourceGroup" style="display:none" class="field-group">
+      <label class="field-label" data-i18n="finalSourceLabel"></label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="finalSource" value="bb" onchange="toggleFinalSource()" checked />
+          <span data-i18n="finalSourceBB"></span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="finalSource" value="file" onchange="toggleFinalSource()" />
+          <span data-i18n="finalSourceFile"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Separate final exam file upload -->
+    <div id="finalFileSection" style="display:none" class="field-group">
+      <label class="field-label" data-i18n="finalFileLabel"></label>
+      <div class="upload-zone" id="finalFileZone">
+        <input type="file" id="finalExamFile" accept=".xls,.xlsx,.csv" onchange="parseFinalFile()" />
+        <div class="upload-label" data-i18n="finalUploadLabel"></div>
+        <div class="upload-sub"   data-i18n="finalUploadSub"></div>
+        <div class="file-name"    id="finalExamFileName"></div>
+      </div>
+      <div class="upload-note" style="margin-top:8px">
+        <span class="upload-note-icon">ℹ</span>
+        <span data-i18n="finalFileNote"></span>
+      </div>
+
+      <!-- Column selectors (shown after file is parsed) -->
+      <div id="finalFileColSelectors" style="display:none; margin-top:14px">
+        <div class="two-col">
+          <div>
+            <label class="field-label" data-i18n="finalStudentCol"></label>
+            <select id="finalFileStudentCol" onchange="updateFormulaInfo()">
+              <option value="" data-i18n="selectColPH"></option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" data-i18n="finalGradeCol"></label>
+            <select id="finalFileGradeCol" onchange="updateFormulaInfo()">
+              <option value="" data-i18n="selectColPH"></option>
+            </select>
+          </div>
+        </div>
+        <div class="max-row" style="margin-top:12px">
+          <label class="field-label" style="margin:0; white-space:nowrap" data-i18n="finalFileMax"></label>
+          <input type="number" id="finalFileMax" min="1" max="10000" oninput="updateFormulaInfo()" />
+        </div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
+    <!-- Weights -->
     <div class="field-group">
       <label class="field-label" data-i18n="weightsLabel"></label>
       <div class="weight-row">
@@ -97,6 +155,25 @@
 
     <div class="divider"></div>
 
+    <!-- Extra Credit toggle -->
+    <div class="field-group">
+      <label class="extra-credit-toggle">
+        <input type="checkbox" id="hasExtraCredit" onchange="toggleExtraCredit()" />
+        <span data-i18n="extraCreditToggle"></span>
+      </label>
+      <div id="extraCreditSection" style="display:none; margin-top:10px">
+        <p class="hint" style="margin-bottom:8px" data-i18n="extraCreditHint"></p>
+        <div class="max-row">
+          <label class="field-label" style="margin:0; white-space:nowrap" data-i18n="extraCreditCap"></label>
+          <input type="number" id="extraCreditCap" min="0" max="100" placeholder="—" oninput="updateFormulaInfo()" />
+        </div>
+        <p class="hint" data-i18n="extraCreditCapHint"></p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Column panels -->
     <div class="field-group">
       <label class="field-label" data-i18n="colAssignLabel"></label>
       <p class="hint" style="margin-bottom:12px" data-i18n="colAssignHint"></p>
@@ -123,7 +200,7 @@
           <p class="hint" data-i18n="autoCalcHint"></p>
         </div>
 
-        <!-- Final panel -->
+        <!-- Final BB panel (shown when source = BB) -->
         <div id="finalPanel" style="display:none">
           <div class="col-panel">
             <div class="col-panel-header">
@@ -141,6 +218,21 @@
             <input type="number" id="finalMax" min="1" max="10000" />
           </div>
           <p class="hint" data-i18n="autoCalcHint"></p>
+        </div>
+
+        <!-- Extra Credit panel -->
+        <div id="extraCreditPanel" style="display:none">
+          <div class="col-panel">
+            <div class="col-panel-header">
+              <span data-i18n="extraCreditPanel"></span>
+              <span class="tag tag-extra" data-i18n="extraCreditTag"></span>
+            </div>
+            <div class="col-checklist" id="extraCreditCols"></div>
+            <div class="col-panel-actions">
+              <button class="btn-text" onclick="selectAll('ext')"   data-i18n="selectAll"></button>
+              <button class="btn-text" onclick="deselectAll('ext')" data-i18n="deselectAll"></button>
+            </div>
+          </div>
         </div>
 
       </div>

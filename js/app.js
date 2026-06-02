@@ -5,12 +5,16 @@
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let lang          = 'ar';
-let bbData        = null;
-let ugWorkbook    = null;
-let ugHeaderRow   = -1;
-let bbColumns     = [];
+let lang           = 'ar';
+let bbData         = null;
+let ugWorkbook     = null;
+let ugHeaderRow    = -1;
+let bbColumns      = [];
 let resultWorkbook = null;
+
+// Final exam from separate file
+let finalFileData  = null;   // array of row objects from the uploaded final file
+let finalFileHeaders = [];   // column names from the final file
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 
@@ -34,10 +38,13 @@ function applyLang() {
   document.getElementById('midtermMax').placeholder = t('placeholder');
   document.getElementById('finalMax').placeholder   = t('placeholder');
 
-  if (document.getElementById('step2').classList.contains('visible')) {
-    updateFormulaInfo();
-  }
+  // Refresh select placeholders
+  ['finalFileStudentCol', 'finalFileGradeCol'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && sel.options[0]) sel.options[0].text = t('selectColPH');
+  });
 
+  if (document.getElementById('step2').classList.contains('visible')) updateFormulaInfo();
   const noteBox = document.getElementById('noteBox');
   if (noteBox) noteBox.textContent = t('noteCheck');
 }
@@ -80,20 +87,13 @@ const normalizeNum = v => String(v || '').trim().replace(/\.0+$/, '');
     }
   });
 
-  zone.addEventListener('dragover', e => {
-    e.preventDefault();
-    zone.classList.add('drag-over');
-  });
-
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-
   zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
+    e.preventDefault(); zone.classList.remove('drag-over');
     const f = e.dataTransfer.files[0];
     if (f) {
-      const dt = new DataTransfer();
-      dt.items.add(f);
+      const dt = new DataTransfer(); dt.items.add(f);
       input.files = dt.files;
       nameEl.textContent = f.name;
       zone.classList.add('has-file');
@@ -107,40 +107,87 @@ function checkBothUploaded() {
     !(document.getElementById('bbFile').files[0] && document.getElementById('ugFile').files[0]);
 }
 
-// ── Final Section Toggle ──────────────────────────────────────────────────────
+// ── Final Section Toggles ─────────────────────────────────────────────────────
 
 function toggleFinalSection() {
   const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
-  document.getElementById('finalPanel').style.display     = hasFinal ? '' : 'none';
-  document.getElementById('finalWeightBox').style.display = hasFinal ? '' : 'none';
+
+  document.getElementById('finalSourceGroup').style.display = hasFinal ? '' : 'none';
+  document.getElementById('finalWeightBox').style.display   = hasFinal ? '' : 'none';
 
   if (!hasFinal) {
-    document.querySelectorAll('#midtermCols .col-check-item').forEach(el => el.classList.remove('disabled'));
-    document.querySelectorAll('#midtermCols input[type=checkbox]').forEach(cb => cb.disabled = false);
+    // Re-enable all midterm/extra items
+    ['midtermCols', 'extraCreditCols'].forEach(listId => {
+      document.querySelectorAll(`#${listId} .col-check-item`).forEach(el => el.classList.remove('disabled'));
+      document.querySelectorAll(`#${listId} input[type=checkbox]`).forEach(cb => cb.disabled = false);
+    });
+    document.getElementById('finalPanel').style.display = 'none';
+    document.getElementById('finalFileSection').style.display = 'none';
+  } else {
+    toggleFinalSource();
   }
 
   syncPanels();
   updateFormulaInfo();
 }
 
+function toggleFinalSource() {
+  const source = document.querySelector('input[name="finalSource"]:checked').value;
+  document.getElementById('finalPanel').style.display      = source === 'bb'   ? '' : 'none';
+  document.getElementById('finalFileSection').style.display = source === 'file' ? '' : 'none';
+  updateFormulaInfo();
+}
+
+function toggleExtraCredit() {
+  const hasExtra = document.getElementById('hasExtraCredit').checked;
+  document.getElementById('extraCreditSection').style.display = hasExtra ? '' : 'none';
+  document.getElementById('extraCreditPanel').style.display   = hasExtra ? '' : 'none';
+  syncPanels();
+  updateFormulaInfo();
+}
+
 function updateFormulaInfo() {
-  const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const hasExtra  = document.getElementById('hasExtraCredit').checked;
   const mw = document.getElementById('midtermWeight').value || 60;
   const fw = document.getElementById('finalWeight').value   || 40;
 
-  document.getElementById('formulaInfo').innerHTML =
-    t('formulaMid', mw) + '<br>' +
-    (hasFinal ? t('formulaFin', fw) : t('formulaNoFin')) + '<br>' +
-    t('formulaTotal', hasFinal);
+  let html = t('formulaMid', mw) + '<br>';
+
+  if (hasFinal) {
+    html += t('formulaFin', fw) + '<br>';
+  } else {
+    html += t('formulaNoFin') + '<br>';
+  }
+
+  if (hasExtra) html += t('formulaExtra') + '<br>';
+
+  html += t('formulaTotal', hasFinal, hasExtra);
+  document.getElementById('formulaInfo').innerHTML = html;
 }
 
-// ── Parse Files ───────────────────────────────────────────────────────────────
+// ── Grade Column Detection ────────────────────────────────────────────────────
+
+/**
+ * Finds where grade columns start in the Blackboard header row.
+ * Grade columns contain "[إجمالي النقاط" or a "|" ID suffix.
+ * Falls back to skipping the first 3 known metadata columns.
+ */
+function detectGradeColumns(headers) {
+  const firstGradeIdx = headers.findIndex(h =>
+    h.includes('النقاط') || h.includes('[') || /\|\d+$/.test(h)
+  );
+  const startIdx = firstGradeIdx > 0 ? firstGradeIdx : 3;
+  return headers.slice(startIdx);
+}
+
+// ── Parse Blackboard + University Files ───────────────────────────────────────
 
 async function parseFiles() {
   const bbFile = document.getElementById('bbFile').files[0];
   const ugFile = document.getElementById('ugFile').files[0];
 
-  // Parse Blackboard — UTF-16 TSV (Blackboard export format) with xlsx fallback
+  // Parse Blackboard — UTF-16 TSV with xlsx fallback
   try {
     const text  = await readAsText(bbFile, 'UTF-16LE');
     const lines = text.split('\n').filter(l => l.trim());
@@ -154,7 +201,7 @@ async function parseFiles() {
       return row;
     }).filter(r => r[headers[0]]);
 
-    bbColumns = headers.slice(6);
+    bbColumns = detectGradeColumns(headers);
   } catch {
     const buf     = await readAsArrayBuffer(bbFile);
     const wb      = XLSX.read(buf, { type: 'array' });
@@ -168,7 +215,7 @@ async function parseFiles() {
       return row;
     }).filter(r => r[headers[0]]);
 
-    bbColumns = headers.slice(6);
+    bbColumns = detectGradeColumns(headers);
   }
 
   // Parse university grader
@@ -178,11 +225,10 @@ async function parseFiles() {
   const allRows = XLSX.utils.sheet_to_json(ugSheet, { header: 1, defval: '' });
   ugHeaderRow   = allRows.findIndex(row => row.some(c => String(c).includes('رقم الطالب')));
 
-  // Build column checklists
-  const midList = document.getElementById('midtermCols');
-  const finList = document.getElementById('finalCols');
-  midList.innerHTML = '';
-  finList.innerHTML = '';
+  // Build column checklists for Midterm, Final (BB), and Extra Credit
+  ['midtermCols', 'finalCols', 'extraCreditCols'].forEach(id => {
+    document.getElementById(id).innerHTML = '';
+  });
 
   bbColumns.forEach((col, idx) => {
     if (!col) return;
@@ -201,8 +247,9 @@ async function parseFiles() {
       return item;
     };
 
-    midList.appendChild(makeItem('m', 'onMidChange'));
-    finList.appendChild(makeItem('f', 'onFinChange'));
+    document.getElementById('midtermCols').appendChild(makeItem('m', 'onMidChange'));
+    document.getElementById('finalCols').appendChild(makeItem('f', 'onFinChange'));
+    document.getElementById('extraCreditCols').appendChild(makeItem('e', 'onExtChange'));
   });
 
   document.getElementById('step2').classList.add('visible');
@@ -210,73 +257,159 @@ async function parseFiles() {
   updateFormulaInfo();
 }
 
-// ── Panel Sync ────────────────────────────────────────────────────────────────
+// ── Parse Separate Final Exam File ────────────────────────────────────────────
 
-function onFinChange() {
-  syncPanels();
-  autoSumMax('fin', 'finalMax');
+async function parseFinalFile() {
+  const file = document.getElementById('finalExamFile').files[0];
+  if (!file) return;
+
+  document.getElementById('finalExamFileName').textContent = file.name;
+  document.getElementById('finalFileZone').classList.add('has-file');
+
+  let headers = [], rows = [];
+
+  try {
+    // Try UTF-16 TSV first
+    const text  = await readAsText(file, 'UTF-16LE');
+    const lines = text.split('\n').filter(l => l.trim());
+    const parseLine = l => l.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
+    headers = parseLine(lines[0]);
+    rows = lines.slice(1).map(line => {
+      const vals = parseLine(line);
+      const row  = {};
+      headers.forEach((h, i) => row[h] = vals[i] || '');
+      return row;
+    }).filter(r => r[headers[0]]);
+  } catch {
+    const buf = await readAsArrayBuffer(file);
+    const wb  = XLSX.read(buf, { type: 'array' });
+    const ws  = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    headers   = raw[0].map(String);
+    rows = raw.slice(1).map(vals => {
+      const row = {};
+      headers.forEach((h, i) => row[h] = vals[i] !== undefined ? String(vals[i]) : '');
+      return row;
+    }).filter(r => r[headers[0]]);
+  }
+
+  finalFileData    = rows;
+  finalFileHeaders = headers;
+
+  // Populate column selectors
+  ['finalFileStudentCol', 'finalFileGradeCol'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    sel.innerHTML = `<option value="">${t('selectColPH')}</option>`;
+    headers.forEach(h => sel.add(new Option(h, h)));
+  });
+
+  document.getElementById('finalFileColSelectors').style.display = '';
 }
 
+// ── Panel Sync ────────────────────────────────────────────────────────────────
+
+function onFinChange() { syncPanels(); autoSumMax('fin', 'finalMax'); }
+function onExtChange() { syncPanels(); }
+
 function onMidChange() {
-  const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const source    = document.querySelector('input[name="finalSource"]:checked')?.value;
+  const hasExtra  = document.getElementById('hasExtraCredit').checked;
 
-  if (hasFinal) {
-    const checkedMid = new Set();
-    document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => checkedMid.add(cb.dataset.col));
+  const checkedMid = new Set();
+  document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => checkedMid.add(cb.dataset.col));
 
+  if (hasFinal && source === 'bb') {
     document.querySelectorAll('#finalCols .col-check-item').forEach(item => {
       const cb = item.querySelector('input');
-      if (checkedMid.has(item.dataset.col)) {
-        cb.checked = false; cb.disabled = true; item.classList.add('disabled');
-      } else {
-        cb.disabled = false; item.classList.remove('disabled');
-      }
+      if (checkedMid.has(item.dataset.col)) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+      else { cb.disabled = false; item.classList.remove('disabled'); }
     });
-
     autoSumMax('fin', 'finalMax');
+  }
+
+  if (hasExtra) {
+    document.querySelectorAll('#extraCreditCols .col-check-item').forEach(item => {
+      const cb = item.querySelector('input');
+      if (checkedMid.has(item.dataset.col)) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+      else { cb.disabled = false; item.classList.remove('disabled'); }
+    });
   }
 
   autoSumMax('mid', 'midtermMax');
 }
 
 function syncPanels() {
-  const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
-  if (!hasFinal) return;
+  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const source    = document.querySelector('input[name="finalSource"]:checked')?.value;
+  const hasExtra  = document.getElementById('hasExtraCredit').checked;
 
+  // Collect all checked fin & extra cols
   const checkedFin = new Set();
-  document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => checkedFin.add(cb.dataset.col));
+  const checkedExt = new Set();
+  if (hasFinal && source === 'bb')
+    document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => checkedFin.add(cb.dataset.col));
+  if (hasExtra)
+    document.querySelectorAll('#extraCreditCols input[type=checkbox]:checked').forEach(cb => checkedExt.add(cb.dataset.col));
 
+  const blocked = new Set([...checkedFin, ...checkedExt]);
+
+  // Disable blocked cols in midterm list
   document.querySelectorAll('#midtermCols .col-check-item').forEach(item => {
     const cb = item.querySelector('input');
-    if (checkedFin.has(item.dataset.col)) {
-      cb.checked = false; cb.disabled = true; item.classList.add('disabled');
-    } else {
-      cb.disabled = false; item.classList.remove('disabled');
-    }
+    if (blocked.has(item.dataset.col)) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+    else { cb.disabled = false; item.classList.remove('disabled'); }
   });
 
+  // Disable mid-checked cols in fin & extra lists
+  const checkedMid = new Set();
+  document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => checkedMid.add(cb.dataset.col));
+
+  if (hasFinal && source === 'bb') {
+    document.querySelectorAll('#finalCols .col-check-item').forEach(item => {
+      const cb = item.querySelector('input');
+      const blocked2 = checkedMid.has(item.dataset.col) || checkedExt.has(item.dataset.col);
+      if (blocked2) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+      else { cb.disabled = false; item.classList.remove('disabled'); }
+    });
+  }
+
+  if (hasExtra) {
+    document.querySelectorAll('#extraCreditCols .col-check-item').forEach(item => {
+      const cb = item.querySelector('input');
+      const blocked2 = checkedMid.has(item.dataset.col) || checkedFin.has(item.dataset.col);
+      if (blocked2) { cb.checked = false; cb.disabled = true; item.classList.add('disabled'); }
+      else { cb.disabled = false; item.classList.remove('disabled'); }
+    });
+  }
+
   autoSumMax('mid', 'midtermMax');
+  if (hasFinal && source === 'bb') autoSumMax('fin', 'finalMax');
 }
 
 function autoSumMax(panel, inputId) {
+  const map = { mid: 'midtermCols', fin: 'finalCols', ext: 'extraCreditCols' };
   let total = 0;
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
-  document.querySelectorAll(`${selector} input[type=checkbox]:checked`).forEach(cb => {
+  document.querySelectorAll(`#${map[panel]} input[type=checkbox]:checked`).forEach(cb => {
     total += parseFloat(cb.dataset.max) || 0;
   });
   if (total > 0) document.getElementById(inputId).value = total;
 }
 
 function selectAll(panel) {
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
-  document.querySelectorAll(`${selector} input[type=checkbox]:not(:disabled)`).forEach(cb => cb.checked = true);
-  panel === 'mid' ? onMidChange() : onFinChange();
+  const map = { mid: 'midtermCols', fin: 'finalCols', ext: 'extraCreditCols' };
+  document.querySelectorAll(`#${map[panel]} input[type=checkbox]:not(:disabled)`).forEach(cb => cb.checked = true);
+  if (panel === 'mid') onMidChange();
+  else if (panel === 'fin') onFinChange();
+  else onExtChange();
 }
 
 function deselectAll(panel) {
-  const selector = panel === 'mid' ? '#midtermCols' : '#finalCols';
-  document.querySelectorAll(`${selector} input[type=checkbox]`).forEach(cb => cb.checked = false);
-  panel === 'mid' ? onMidChange() : onFinChange();
+  const map = { mid: 'midtermCols', fin: 'finalCols', ext: 'extraCreditCols' };
+  document.querySelectorAll(`#${map[panel]} input[type=checkbox]`).forEach(cb => cb.checked = false);
+  if (panel === 'mid') onMidChange();
+  else if (panel === 'fin') onFinChange();
+  else onExtChange();
 }
 
 // ── Letter Grade ──────────────────────────────────────────────────────────────
@@ -296,50 +429,83 @@ function letterGrade(total) {
 // ── Process Grades ────────────────────────────────────────────────────────────
 
 function processGrades() {
-  const hasFinal      = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const hasFinal    = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const finalSource = document.querySelector('input[name="finalSource"]:checked')?.value || 'bb';
+  const hasExtra    = document.getElementById('hasExtraCredit').checked;
+
   const midtermWeight = parseFloat(document.getElementById('midtermWeight').value) || 60;
   const finalWeight   = parseFloat(document.getElementById('finalWeight').value)   || 40;
   const midMax        = parseFloat(document.getElementById('midtermMax').value);
-  const finalMax      = parseFloat(document.getElementById('finalMax').value);
+  const finalMax      = finalSource === 'bb'
+    ? parseFloat(document.getElementById('finalMax').value)
+    : parseFloat(document.getElementById('finalFileMax').value);
+  const extraCap = parseFloat(document.getElementById('extraCreditCap').value) || Infinity;
 
   const selectedMidCols = [];
   const selectedFinCols = [];
+  const selectedExtCols = [];
   document.querySelectorAll('#midtermCols input[type=checkbox]:checked').forEach(cb => selectedMidCols.push(cb.dataset.col));
-  if (hasFinal) document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => selectedFinCols.push(cb.dataset.col));
+  if (hasFinal && finalSource === 'bb')
+    document.querySelectorAll('#finalCols input[type=checkbox]:checked').forEach(cb => selectedFinCols.push(cb.dataset.col));
+  if (hasExtra)
+    document.querySelectorAll('#extraCreditCols input[type=checkbox]:checked').forEach(cb => selectedExtCols.push(cb.dataset.col));
 
-  if (selectedMidCols.length === 0)                   { alert(t('errMidCol')); return; }
-  if (isNaN(midMax) || midMax <= 0)                   { alert(t('errMidMax')); return; }
-  if (hasFinal && selectedFinCols.length === 0)        { alert(t('errFinCol')); return; }
-  if (hasFinal && (isNaN(finalMax) || finalMax <= 0)) { alert(t('errFinMax')); return; }
+  // Validation
+  if (selectedMidCols.length === 0)                        { alert(t('errMidCol')); return; }
+  if (isNaN(midMax) || midMax <= 0)                        { alert(t('errMidMax')); return; }
+  if (hasFinal && finalSource === 'bb') {
+    if (selectedFinCols.length === 0)                      { alert(t('errFinCol')); return; }
+    if (isNaN(finalMax) || finalMax <= 0)                  { alert(t('errFinMax')); return; }
+  }
+  if (hasFinal && finalSource === 'file') {
+    if (!finalFileData)                                    { alert(t('errFinFile')); return; }
+    const sc = document.getElementById('finalFileStudentCol').value;
+    const gc = document.getElementById('finalFileGradeCol').value;
+    if (!sc || !gc)                                        { alert(t('errFinFileCol')); return; }
+    if (isNaN(finalMax) || finalMax <= 0)                  { alert(t('errFinFilMax')); return; }
+  }
 
-  // Detect username column
+  // Detect username column in Blackboard
   const usernameKey = Object.keys(bbData[0]).find(k =>
     k.includes('اسم المستخدم') || k.toLowerCase().includes('username')
   );
 
-  // Build student lookup from Blackboard
+  // Build separate-file final lookup (student num → raw grade)
+  const finalFileLookup = {};
+  if (hasFinal && finalSource === 'file' && finalFileData) {
+    const sc = document.getElementById('finalFileStudentCol').value;
+    const gc = document.getElementById('finalFileGradeCol').value;
+    finalFileData.forEach(row => {
+      const num = normalizeNum(row[sc]);
+      if (!num) return;
+      const v = parseFloat(row[gc]);
+      if (!isNaN(v)) finalFileLookup[num] = v;
+    });
+  }
+
+  // Build Blackboard lookup: student num → { midterm, final (BB), extraCredit }
   const bbLookup = {};
   bbData.forEach(row => {
     const num = normalizeNum(row[usernameKey]);
     if (!num) return;
 
     let midSum = 0, midHas = false;
-    selectedMidCols.forEach(col => {
-      const v = parseFloat(row[col]);
-      if (!isNaN(v)) { midSum += v; midHas = true; }
-    });
+    selectedMidCols.forEach(col => { const v = parseFloat(row[col]); if (!isNaN(v)) { midSum += v; midHas = true; } });
 
     let finSum = 0, finHas = false;
-    if (hasFinal) {
-      selectedFinCols.forEach(col => {
-        const v = parseFloat(row[col]);
-        if (!isNaN(v)) { finSum += v; finHas = true; }
-      });
+    if (hasFinal && finalSource === 'bb') {
+      selectedFinCols.forEach(col => { const v = parseFloat(row[col]); if (!isNaN(v)) { finSum += v; finHas = true; } });
+    }
+
+    let extSum = 0;
+    if (hasExtra) {
+      selectedExtCols.forEach(col => { const v = parseFloat(row[col]); if (!isNaN(v)) extSum += v; });
     }
 
     bbLookup[num] = {
       midterm: midHas ? (midSum / midMax) * midtermWeight : null,
-      final:   (hasFinal && finHas) ? (finSum / finalMax) * finalWeight : null,
+      final:   (hasFinal && finalSource === 'bb' && finHas) ? (finSum / finalMax) * finalWeight : null,
+      extra:   hasExtra ? Math.min(extSum, extraCap) : 0,
     };
   });
 
@@ -349,7 +515,6 @@ function processGrades() {
   const allRows   = XLSX.utils.sheet_to_json(srcSheet, { header: 1, defval: '' });
   const cleanRows = allRows.slice(ugHeaderRow);
 
-  // Locate columns by header name
   const hdr           = cleanRows[0];
   const colStudentNum = hdr.findIndex(c => String(c).includes('رقم الطالب'));
   const colMidterm    = hdr.findIndex(c => String(c).includes('فصلي'));
@@ -370,11 +535,11 @@ function processGrades() {
     const isExcused   = String(row[colGrade] || '').trim() === 'ع';
 
     if (isExcused) {
-      if (colMidterm >= 0)             cleanRows[i][colMidterm] = 0;
-      if (hasFinal && colFinal >= 0)   cleanRows[i][colFinal]   = 0;
-      if (colTotal >= 0)               cleanRows[i][colTotal]   = 0;
-      if (colGrade >= 0)               cleanRows[i][colGrade]   = 0;
-      tableRows.push({ num: studentNum, name: studentName, mid: 0, fin: hasFinal ? 0 : '—', total: 0, grade: 'F', status: 'excused' });
+      if (colMidterm >= 0)            cleanRows[i][colMidterm] = 0;
+      if (hasFinal && colFinal >= 0)  cleanRows[i][colFinal]   = 0;
+      if (colTotal >= 0)              cleanRows[i][colTotal]   = 0;
+      if (colGrade >= 0)              cleanRows[i][colGrade]   = 0;
+      tableRows.push({ num: studentNum, name: studentName, mid: 0, fin: hasFinal ? 0 : '—', extra: hasExtra ? 0 : '—', total: 0, grade: 'F', status: 'excused' });
       continue;
     }
 
@@ -382,40 +547,57 @@ function processGrades() {
 
     if (!grades) {
       zeroed++;
-      if (colMidterm >= 0)             cleanRows[i][colMidterm] = 0;
-      if (hasFinal && colFinal >= 0)   cleanRows[i][colFinal]   = 0;
-      if (colTotal >= 0)               cleanRows[i][colTotal]   = 0;
-      if (colGrade >= 0)               cleanRows[i][colGrade]   = 'F';
-      tableRows.push({ num: studentNum, name: studentName, mid: 0, fin: hasFinal ? 0 : '—', total: 0, grade: 'F', status: 'missing' });
+      if (colMidterm >= 0)            cleanRows[i][colMidterm] = 0;
+      if (hasFinal && colFinal >= 0)  cleanRows[i][colFinal]   = 0;
+      if (colTotal >= 0)              cleanRows[i][colTotal]   = 0;
+      if (colGrade >= 0)              cleanRows[i][colGrade]   = 'F';
+      tableRows.push({ num: studentNum, name: studentName, mid: 0, fin: hasFinal ? 0 : '—', extra: hasExtra ? 0 : '—', total: 0, grade: 'F', status: 'missing' });
       continue;
     }
 
     matched++;
     const midVal = grades.midterm !== null ? Math.ceil(grades.midterm) : 0;
-    const finVal = (hasFinal && grades.final !== null) ? Math.ceil(grades.final) : (hasFinal ? 0 : null);
 
-    if (colMidterm >= 0)           cleanRows[i][colMidterm] = midVal;
-    if (hasFinal && colFinal >= 0) cleanRows[i][colFinal]   = finVal;
+    // Final: from BB or from separate file
+    let finVal = 0;
+    if (hasFinal) {
+      if (finalSource === 'bb') {
+        finVal = grades.final !== null ? Math.ceil(grades.final) : 0;
+      } else {
+        const rawFin = finalFileLookup[studentNum];
+        finVal = rawFin !== undefined ? Math.ceil((rawFin / finalMax) * finalWeight) : 0;
+      }
+    }
 
-    const total = Math.ceil(midVal + (hasFinal ? (finVal || 0) : 0));
-    if (colTotal >= 0) cleanRows[i][colTotal] = total;
+    const extraVal = hasExtra ? grades.extra : 0;
+    const total    = Math.ceil(midVal + (hasFinal ? finVal : 0) + extraVal);
 
+    if (colMidterm >= 0)            cleanRows[i][colMidterm] = midVal;
+    if (hasFinal && colFinal >= 0)  cleanRows[i][colFinal]   = finVal;
+    if (colTotal >= 0)              cleanRows[i][colTotal]   = total;
     const lg = letterGrade(total);
-    if (colGrade >= 0) cleanRows[i][colGrade] = lg;
+    if (colGrade >= 0)              cleanRows[i][colGrade]   = lg;
 
-    tableRows.push({ num: studentNum, name: studentName, mid: midVal, fin: hasFinal ? finVal : '—', total, grade: lg, status: 'ok' });
+    tableRows.push({
+      num: studentNum, name: studentName,
+      mid: midVal,
+      fin: hasFinal ? finVal : '—',
+      extra: hasExtra ? extraVal : '—',
+      total, grade: lg, status: 'ok'
+    });
   }
 
-  // Output: only student number, name, midterm, (final if applicable)
+  // Output: student number, name, midterm, (final if applicable)
   const keepCols = [colStudentNum, 1, colMidterm];
   if (hasFinal && colFinal >= 0) keepCols.push(colFinal);
   const outputRows = cleanRows.map(row => keepCols.map(c => row[c] !== undefined ? row[c] : ''));
 
   const newSheet = XLSX.utils.aoa_to_sheet(outputRows);
-  resultWorkbook = XLSX.utils.book_new();
+  resultWorkbook  = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(resultWorkbook, newSheet, sheetName);
 
-  // Render results
+  // ── Render results ────────────────────────────────────────────────────────
+
   document.getElementById('noteBox').textContent = t('noteCheck');
 
   document.getElementById('summaryGrid').innerHTML = `
@@ -441,31 +623,33 @@ function processGrades() {
        </div>`
     : `<div class="alert alert-info">${t('successMsg')}</div>`;
 
-  const finHeader = hasFinal ? `<th>${t('tblFin')}</th>` : '';
+  // Grade table
+  const finTh   = hasFinal  ? `<th>${t('tblFin')}</th>`   : '';
+  const extraTh = hasExtra  ? `<th>${t('tblExtra')}</th>` : '';
   document.getElementById('gradeTableHead').innerHTML = `
     <tr>
       <th>${t('tblNum')}</th>
       <th>${t('tblName')}</th>
       <th>${t('tblMid')}</th>
-      ${finHeader}
+      ${finTh}
+      ${extraTh}
       <th>${t('tblTotal')}</th>
       <th>${t('tblGrade')}</th>
       <th>${t('tblStatus')}</th>
     </tr>`;
 
   document.getElementById('gradeTableBody').innerHTML = tableRows.map(r => {
-    const finCell  = hasFinal
-      ? `<td class="${r.status === 'excused' ? 'excused' : (r.fin === 0 ? 'zero' : '')}">${r.fin}</td>`
-      : '';
-    const isPass   = typeof r.total === 'number' && r.total >= 60 && r.status !== 'excused';
-    const badge    = r.status === 'excused' ? 'badge-excused' : (isPass ? 'badge-pass' : 'badge-fail');
+    const finTd   = hasFinal ? `<td class="${r.status === 'excused' ? 'excused' : (r.fin === 0 ? 'zero' : '')}">${r.fin}</td>` : '';
+    const extraTd = hasExtra ? `<td class="${r.extra === 0 ? '' : ''}">${r.extra}</td>` : '';
+    const isPass  = typeof r.total === 'number' && r.total >= 60 && r.status !== 'excused';
+    const badge   = r.status === 'excused' ? 'badge-excused' : (isPass ? 'badge-pass' : 'badge-fail');
     const statusLbl = r.status === 'ok' ? t('statusOk') : r.status === 'missing' ? t('statusMissing') : t('statusExcused');
-
     return `<tr>
       <td>${r.num}</td>
       <td>${r.name}</td>
       <td class="${r.status === 'excused' ? 'excused' : (r.mid === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.mid}</td>
-      ${finCell}
+      ${finTd}
+      ${extraTd}
       <td class="${r.status === 'excused' ? 'excused' : (r.total === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.total}</td>
       <td><span class="grade-badge ${badge}">${r.grade}</span></td>
       <td><span class="grade-badge ${badge}">${statusLbl}</span></td>
