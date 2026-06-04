@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Blackboard Grade Converter | محول درجات بلاك بورد</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -63,23 +66,8 @@
       <span data-i18n="step2Title"></span>
     </div>
 
-    <!-- Has Final? -->
-    <div class="field-group">
-      <label class="field-label" data-i18n="hasFinalLabel"></label>
-      <div class="radio-group">
-        <label class="radio-option">
-          <input type="radio" name="hasFinal" value="yes" onchange="toggleFinalSection()" />
-          <span data-i18n="hasFinalYes"></span>
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="hasFinal" value="no" onchange="toggleFinalSection()" checked />
-          <span data-i18n="hasFinalNo"></span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Final source (BB vs separate file) -->
-    <div id="finalSourceGroup" style="display:none" class="field-group">
+    <!-- Final source (BB vs separate file vs none) -->
+    <div id="finalSourceGroup" class="field-group">
       <label class="field-label" data-i18n="finalSourceLabel"></label>
       <div class="radio-group">
         <label class="radio-option">
@@ -89,6 +77,10 @@
         <label class="radio-option">
           <input type="radio" name="finalSource" value="file" onchange="toggleFinalSource()" />
           <span data-i18n="finalSourceFile"></span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="finalSource" value="none" onchange="toggleFinalSource()" />
+          <span data-i18n="finalSourceNone"></span>
         </label>
       </div>
     </div>
@@ -263,7 +255,10 @@
       </table>
     </div>
 
-    <button class="btn-success" onclick="downloadResult()" data-i18n="btnDownload"></button>
+    <div class="step3-actions">
+      <button class="btn-success" onclick="downloadResult()" data-i18n="btnDownload"></button>
+      <button class="btn-reset"   onclick="resetAll()"       data-i18n="btnReset"></button>
+    </div>
   </div>
 
 </main>

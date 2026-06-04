@@ -13,8 +13,11 @@ let bbColumns      = [];
 let resultWorkbook = null;
 
 // Final exam from separate file
-let finalFileData  = null;   // array of row objects from the uploaded final file
-let finalFileHeaders = [];   // column names from the final file
+let finalFileData    = null;
+let finalFileHeaders = [];
+
+// Results state — kept so step 3 can be re-rendered on language switch
+let lastResults = null;
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 
@@ -45,8 +48,7 @@ function applyLang() {
   });
 
   if (document.getElementById('step2').classList.contains('visible')) updateFormulaInfo();
-  const noteBox = document.getElementById('noteBox');
-  if (noteBox) noteBox.textContent = t('noteCheck');
+  if (document.getElementById('step3').classList.contains('visible')) renderStep3();
 }
 
 function toggleLang() {
@@ -109,32 +111,22 @@ function checkBothUploaded() {
 
 // ── Final Section Toggles ─────────────────────────────────────────────────────
 
-function toggleFinalSection() {
-  const hasFinal = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+function toggleFinalSource() {
+  const source   = document.querySelector('input[name="finalSource"]:checked').value;
+  const hasFinal = source !== 'none';
 
-  document.getElementById('finalSourceGroup').style.display = hasFinal ? '' : 'none';
-  document.getElementById('finalWeightBox').style.display   = hasFinal ? '' : 'none';
+  document.getElementById('finalWeightBox').style.display    = hasFinal ? '' : 'none';
+  document.getElementById('finalPanel').style.display        = source === 'bb'   ? '' : 'none';
+  document.getElementById('finalFileSection').style.display  = source === 'file' ? '' : 'none';
 
   if (!hasFinal) {
-    // Re-enable all midterm/extra items
     ['midtermCols', 'extraCreditCols'].forEach(listId => {
       document.querySelectorAll(`#${listId} .col-check-item`).forEach(el => el.classList.remove('disabled'));
       document.querySelectorAll(`#${listId} input[type=checkbox]`).forEach(cb => cb.disabled = false);
     });
-    document.getElementById('finalPanel').style.display = 'none';
-    document.getElementById('finalFileSection').style.display = 'none';
-  } else {
-    toggleFinalSource();
   }
 
   syncPanels();
-  updateFormulaInfo();
-}
-
-function toggleFinalSource() {
-  const source = document.querySelector('input[name="finalSource"]:checked').value;
-  document.getElementById('finalPanel').style.display      = source === 'bb'   ? '' : 'none';
-  document.getElementById('finalFileSection').style.display = source === 'file' ? '' : 'none';
   updateFormulaInfo();
 }
 
@@ -147,7 +139,7 @@ function toggleExtraCredit() {
 }
 
 function updateFormulaInfo() {
-  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
+  const hasFinal  = document.querySelector('input[name="finalSource"]:checked').value !== 'none';
   const hasExtra  = document.getElementById('hasExtraCredit').checked;
   const mw = document.getElementById('midtermWeight').value || 60;
   const fw = document.getElementById('finalWeight').value   || 40;
@@ -254,6 +246,7 @@ async function parseFiles() {
 
   document.getElementById('step2').classList.add('visible');
   document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  toggleFinalSource();
   updateFormulaInfo();
 }
 
@@ -312,8 +305,8 @@ function onFinChange() { syncPanels(); autoSumMax('fin', 'finalMax'); }
 function onExtChange() { syncPanels(); }
 
 function onMidChange() {
-  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
   const source    = document.querySelector('input[name="finalSource"]:checked')?.value;
+  const hasFinal  = source !== 'none';
   const hasExtra  = document.getElementById('hasExtraCredit').checked;
 
   const checkedMid = new Set();
@@ -340,8 +333,8 @@ function onMidChange() {
 }
 
 function syncPanels() {
-  const hasFinal  = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
   const source    = document.querySelector('input[name="finalSource"]:checked')?.value;
+  const hasFinal  = source !== 'none';
   const hasExtra  = document.getElementById('hasExtraCredit').checked;
 
   // Collect all checked fin & extra cols
@@ -429,8 +422,8 @@ function letterGrade(total) {
 // ── Process Grades ────────────────────────────────────────────────────────────
 
 function processGrades() {
-  const hasFinal    = document.querySelector('input[name="hasFinal"]:checked').value === 'yes';
   const finalSource = document.querySelector('input[name="finalSource"]:checked')?.value || 'bb';
+  const hasFinal    = finalSource !== 'none';
   const hasExtra    = document.getElementById('hasExtraCredit').checked;
 
   const midtermWeight = parseFloat(document.getElementById('midtermWeight').value) || 60;
@@ -587,16 +580,49 @@ function processGrades() {
     });
   }
 
-  // Output: student number, name, midterm, (final if applicable)
+  // Output columns — only student number, name, midterm, final
   const keepCols = [colStudentNum, 1, colMidterm];
   if (hasFinal && colFinal >= 0) keepCols.push(colFinal);
-  const outputRows = cleanRows.map(row => keepCols.map(c => row[c] !== undefined ? row[c] : ''));
+
+  const dataRows = cleanRows.slice(1).map(row => keepCols.map(c => row[c] !== undefined ? row[c] : ''));
+
+  // Custom header with percentages
+  const midPct = Math.round(midtermWeight);
+  const finPct = Math.round(finalWeight);
+  const header = [
+    'رقم الطالب',
+    'اسم الطالب',
+    `فصلي (${midPct}%)`,
+  ];
+  if (hasFinal) header.push(`نهائي (${finPct}%)`);
+
+  const outputRows = [header, ...dataRows];
+
+  // Map student number → output row index (skip header row 0)
+  const numToOutputRow = {};
+  for (let i = 1; i < outputRows.length; i++) {
+    const num = normalizeNum(outputRows[i][0]);
+    if (num) numToOutputRow[num] = i;
+  }
 
   const newSheet = XLSX.utils.aoa_to_sheet(outputRows);
   resultWorkbook  = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(resultWorkbook, newSheet, sheetName);
 
-  // ── Render results ────────────────────────────────────────────────────────
+  // ── Save results state and render ─────────────────────────────────────────
+
+  const missingStudents = tableRows.filter(r => r.status === 'missing').map(r => r.num);
+  lastResults = { totalStudents, matched, zeroed, missingStudents, tableRows, hasFinal, hasExtra,
+                  outputRows, numToOutputRow, sheetName };
+
+  renderStep3();
+  document.getElementById('step3').classList.add('visible');
+  document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStep3() {
+  if (!lastResults) return;
+  const { totalStudents, matched, zeroed, missingStudents, tableRows, hasFinal, hasExtra } = lastResults;
 
   document.getElementById('noteBox').textContent = t('noteCheck');
 
@@ -606,16 +632,14 @@ function processGrades() {
       <div class="lbl">${t('totalStudents')}</div>
     </div>
     <div class="summary-box">
-      <div class="num" style="color:#28a745">${matched}</div>
+      <div class="num" style="color:#16a34a">${matched}</div>
       <div class="lbl">${t('updated')}</div>
     </div>
     <div class="summary-box">
-      <div class="num" style="color:#dc3545">${zeroed}</div>
+      <div class="num" style="color:#dc2626">${zeroed}</div>
       <div class="lbl">${t('notFound')}</div>
-    </div>
-  `;
+    </div>`;
 
-  const missingStudents = tableRows.filter(r => r.status === 'missing').map(r => r.num);
   document.getElementById('missingAlert').innerHTML = missingStudents.length > 0
     ? `<div class="alert alert-warning">
         <strong>${t('warnTitle')}:</strong> ${t('warnMsg')}
@@ -623,41 +647,37 @@ function processGrades() {
        </div>`
     : `<div class="alert alert-info">${t('successMsg')}</div>`;
 
-  // Grade table
-  const finTh   = hasFinal  ? `<th>${t('tblFin')}</th>`   : '';
-  const extraTh = hasExtra  ? `<th>${t('tblExtra')}</th>` : '';
+  const finTh   = hasFinal ? `<th class="col-num">${t('tblFin')}</th>`   : '';
+  const extraTh = hasExtra ? `<th class="col-num">${t('tblExtra')}</th>` : '';
   document.getElementById('gradeTableHead').innerHTML = `
     <tr>
-      <th>${t('tblNum')}</th>
-      <th>${t('tblName')}</th>
-      <th>${t('tblMid')}</th>
+      <th class="col-id">${t('tblNum')}</th>
+      <th class="col-name">${t('tblName')}</th>
+      <th class="col-num">${t('tblMid')}</th>
       ${finTh}
       ${extraTh}
-      <th>${t('tblTotal')}</th>
-      <th>${t('tblGrade')}</th>
-      <th>${t('tblStatus')}</th>
+      <th class="col-num">${t('tblTotal')}</th>
+      <th class="col-letter">${t('tblGrade')}</th>
+      <th class="col-status">${t('tblStatus')}</th>
     </tr>`;
 
   document.getElementById('gradeTableBody').innerHTML = tableRows.map(r => {
-    const finTd   = hasFinal ? `<td class="${r.status === 'excused' ? 'excused' : (r.fin === 0 ? 'zero' : '')}">${r.fin}</td>` : '';
-    const extraTd = hasExtra ? `<td class="${r.extra === 0 ? '' : ''}">${r.extra}</td>` : '';
-    const isPass  = typeof r.total === 'number' && r.total >= 60 && r.status !== 'excused';
-    const badge   = r.status === 'excused' ? 'badge-excused' : (isPass ? 'badge-pass' : 'badge-fail');
-    const statusLbl = r.status === 'ok' ? t('statusOk') : r.status === 'missing' ? t('statusMissing') : t('statusExcused');
+    const finTd   = hasFinal ? `<td class="col-num ${r.status === 'excused' ? 'excused' : (r.fin === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.fin}</td>` : '';
+    const extraTd = hasExtra ? `<td class="col-num">${r.extra}</td>` : '';
+    const isPass     = typeof r.total === 'number' && r.total >= 60 && r.status !== 'excused';
+    const colorClass = r.status === 'excused' ? 'excused' : (isPass ? 'pass' : 'fail');
+    const statusLbl  = r.status === 'ok' ? t('statusOk') : r.status === 'missing' ? t('statusMissing') : t('statusExcused');
     return `<tr>
-      <td>${r.num}</td>
-      <td>${r.name}</td>
-      <td class="${r.status === 'excused' ? 'excused' : (r.mid === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.mid}</td>
+      <td class="col-id">${r.num}</td>
+      <td class="col-name">${r.name}</td>
+      <td class="col-num ${r.status === 'excused' ? 'excused' : (r.mid === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.mid}</td>
       ${finTd}
       ${extraTd}
-      <td class="${r.status === 'excused' ? 'excused' : (r.total === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.total}</td>
-      <td><span class="grade-badge ${badge}">${r.grade}</span></td>
-      <td><span class="grade-badge ${badge}">${statusLbl}</span></td>
+      <td class="col-num ${r.status === 'excused' ? 'excused' : (r.total === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.total}</td>
+      <td class="col-letter"><span class="grade-letter ${colorClass}">${r.grade}</span></td>
+      <td class="col-status"><span class="status-chip ${colorClass}">${statusLbl}</span></td>
     </tr>`;
   }).join('');
-
-  document.getElementById('step3').classList.add('visible');
-  document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────
@@ -666,6 +686,52 @@ function downloadResult() {
   if (!resultWorkbook) return;
   const filename = lang === 'ar' ? 'كشف_الدرجات_المحدّث.xls' : 'Updated_Grade_Sheet.xls';
   XLSX.writeFile(resultWorkbook, filename, { bookType: 'xls' });
+}
+
+function resetAll() {
+  // Clear state
+  bbData         = null;
+  ugWorkbook     = null;
+  ugHeaderRow    = -1;
+  bbColumns      = [];
+  resultWorkbook = null;
+  finalFileData  = null;
+  finalFileHeaders = [];
+  lastResults    = null;
+
+  // Reset file inputs and upload zones
+  ['bb', 'ug'].forEach(id => {
+    document.getElementById(id + 'File').value = '';
+    document.getElementById(id + 'FileName').textContent = '';
+    document.getElementById(id + 'Zone').classList.remove('has-file');
+  });
+  document.getElementById('finalExamFile').value = '';
+  document.getElementById('finalExamFileName').textContent = '';
+  document.getElementById('finalFileZone').classList.remove('has-file');
+  document.getElementById('finalFileColSelectors').style.display = 'none';
+
+  // Reset step 2 controls
+  document.querySelector('input[name="finalSource"][value="bb"]').checked = true;
+  document.getElementById('hasExtraCredit').checked = false;
+  document.getElementById('extraCreditSection').style.display = 'none';
+  document.getElementById('midtermWeight').value = 60;
+  document.getElementById('finalWeight').value   = 40;
+  document.getElementById('midtermMax').value    = '';
+  document.getElementById('finalMax').value      = '';
+  document.getElementById('extraCreditCap').value = '';
+  ['midtermCols', 'finalCols', 'extraCreditCols'].forEach(id => {
+    document.getElementById(id).innerHTML = '';
+  });
+
+  // Hide steps 2 & 3
+  document.getElementById('step2').classList.remove('visible');
+  document.getElementById('step3').classList.remove('visible');
+
+  // Disable parse button
+  document.getElementById('btnParse').disabled = true;
+
+  // Scroll back to top
+  document.getElementById('step1').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
