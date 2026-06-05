@@ -572,8 +572,49 @@ select:focus {
 }
 
 /* Header — flat, no gradient */
-.grade-table thead tr {
+.grade-table thead tr:first-child {
+  border-bottom: none;
+}
+
+.grade-table thead tr.filter-row th {
+  padding: 6px 8px;
+  background: #eef1f9;
   border-bottom: 2px solid #0f3460;
+}
+
+.col-filter-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1.5px solid #c8d0e7;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: #fff;
+  color: #1a2340;
+  box-sizing: border-box;
+  transition: border-color 0.18s;
+}
+.col-filter-input:focus {
+  outline: none;
+  border-color: #4f7ef8;
+}
+
+.col-filter-select {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1.5px solid #c8d0e7;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  background: #fff;
+  color: #1a2340;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.18s;
+}
+.col-filter-select:focus {
+  outline: none;
+  border-color: #4f7ef8;
 }
 
 .grade-table th {
@@ -603,10 +644,59 @@ select:focus {
 
 .grade-table tr:last-child td { border-bottom: none; }
 .grade-table tbody tr:hover td { background: #f5f8ff; }
+.grade-table tbody tr.hl-borderline:hover td { background: #fff8e6; }
+.grade-table tbody tr.hl-close:hover td      { background: #e6f9ef; }
+.grade-table tbody tr.hl-close-low:hover td  { background: #fff0e6; }
+
+/* Row highlights */
+.grade-table tbody tr.hl-borderline td { background: #fffbec; }
+.grade-table tbody tr.hl-close td      { background: #edfaf3; }
+.grade-table tbody tr.hl-close-low td  { background: #fff5ec; }
 
 /* Zero / excused */
 .grade-table td.zero    { color: #dc2626; font-weight: 700; }
 .grade-table td.excused { color: #b0b7c3; }
+
+/* Mid edit */
+.mid-cell { position: relative; white-space: nowrap; }
+.btn-edit-mid {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  opacity: 0;
+  padding: 0 2px;
+  vertical-align: middle;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.grade-table tbody tr:hover .btn-edit-mid { opacity: 0.6; }
+.btn-edit-mid:hover { opacity: 1 !important; }
+
+.mid-edit-input {
+  width: 58px;
+  padding: 3px 5px;
+  border: 1.5px solid #4f7ef8;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.mid-edit-input:focus { outline: none; }
+
+.btn-edit-confirm, .btn-edit-cancel {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 3px 6px;
+  margin-inline-start: 3px;
+  vertical-align: middle;
+}
+.btn-edit-confirm { background: #16a34a; color: #fff; }
+.btn-edit-confirm:hover { background: #15803d; }
+.btn-edit-cancel  { background: #e5e7eb; color: #374151; }
+.btn-edit-cancel:hover  { background: #d1d5db; }
 
 /* التقدير — plain bold colored text, no pill */
 .grade-letter {

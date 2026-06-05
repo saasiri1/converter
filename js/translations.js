@@ -1,7 +1,3 @@
-/**
- * translations.js
- * All UI strings for Arabic (ar) and English (en).
- */
 
 const translations = {
   ar: {
@@ -89,6 +85,12 @@ const translations = {
     errFinFile: 'يرجى رفع ملف الاختبار النهائي',
     errFinFileCol: 'يرجى اختيار عمود الرقم الجامعي وعمود الدرجة من ملف الاختبار النهائي',
     errFinFilMax: 'يرجى إدخال الدرجة الكاملة لملف الاختبار النهائي',
+
+    editMidTitle: 'تعديل درجة الأعمال الفصلية',
+    filterSearchPH: 'بحث بالاسم أو الرقم…',
+    filterGradeAll: 'كل التقديرات',
+    filterStatusAll: 'كل الحالات',
+    filterCount: 'طالب',
 
     tblNum: 'الرقم الجامعي',
     tblName: 'اسم الطالب',
@@ -190,6 +192,12 @@ const translations = {
     errFinFile: 'Please upload the final exam file',
     errFinFileCol: 'Please select the Student ID column and Grade column from the final exam file',
     errFinFilMax: 'Please enter the full marks for the final exam file',
+
+    editMidTitle: 'Edit coursework grade',
+    filterSearchPH: 'Search by name or ID…',
+    filterGradeAll: 'All Grades',
+    filterStatusAll: 'All Statuses',
+    filterCount: 'student(s)',
 
     tblNum: 'Student ID',
     tblName: 'Student Name',

@@ -580,8 +580,9 @@ function processGrades() {
   // ── Save results state and render ─────────────────────────────────────────
 
   const missingStudents = tableRows.filter(r => r.status === 'missing').map(r => r.num);
+  const midtermWeightVal = parseFloat(document.getElementById('midtermWeight').value) || 60;
   lastResults = { totalStudents, matched, zeroed, missingStudents, tableRows, hasFinal, hasExtra,
-                  outputRows, numToOutputRow, sheetName };
+                  outputRows, numToOutputRow, sheetName, midtermWeight: midtermWeightVal };
 
   renderStep3();
   document.getElementById('step3').classList.add('visible');
@@ -617,6 +618,9 @@ function renderStep3() {
 
   const finTh   = hasFinal ? `<th class="col-num">${t('tblFin')}</th>`   : '';
   const extraTh = hasExtra ? `<th class="col-num">${t('tblExtra')}</th>` : '';
+  const finFilterTd   = hasFinal ? `<th></th>` : '';
+  const extraFilterTd = hasExtra ? `<th></th>` : '';
+  const colSpan = 3 + (hasFinal ? 1 : 0) + (hasExtra ? 1 : 0) + 2;
   document.getElementById('gradeTableHead').innerHTML = `
     <tr>
       <th class="col-id">${t('tblNum')}</th>
@@ -627,18 +631,70 @@ function renderStep3() {
       <th class="col-num">${t('tblTotal')}</th>
       <th class="col-letter">${t('tblGrade')}</th>
       <th class="col-status">${t('tblStatus')}</th>
+    </tr>
+    <tr class="filter-row">
+      <th class="col-id"><input type="text" id="filterSearch" class="col-filter-input" placeholder="${t('filterSearchPH')}" oninput="filterTable()" /></th>
+      <th class="col-name"></th>
+      <th></th>
+      ${finFilterTd}
+      ${extraFilterTd}
+      <th></th>
+      <th class="col-letter">
+        <select id="filterGrade" class="col-filter-select" onchange="filterTable()">
+          <option value="">${t('filterGradeAll')}</option>
+          <option value="A">A</option>
+          <option value="B+">B+</option>
+          <option value="B">B</option>
+          <option value="C+">C+</option>
+          <option value="C">C</option>
+          <option value="D+">D+</option>
+          <option value="D">D</option>
+          <option value="F">F</option>
+        </select>
+      </th>
+      <th class="col-status">
+        <select id="filterStatus" class="col-filter-select" onchange="filterTable()">
+          <option value="">${t('filterStatusAll')}</option>
+          <option value="ok">${t('statusOk')}</option>
+          <option value="missing">${t('statusMissing')}</option>
+          <option value="excused">${t('statusExcused')}</option>
+        </select>
+      </th>
     </tr>`;
 
-  document.getElementById('gradeTableBody').innerHTML = tableRows.map(r => {
+  renderTableRows(tableRows);
+}
+
+function rowHighlightClass(r) {
+  if (r.status === 'excused' || typeof r.total !== 'number') return '';
+  const t = r.total;
+  if (t >= 50 && t <= 54) return 'hl-close-low';
+  if (t >= 55 && t <= 59) return 'hl-close';
+  const ones = Math.floor(t) % 10;
+  if (ones === 4 || ones === 9) return 'hl-borderline';
+  return '';
+}
+
+function renderTableRows(rows) {
+  if (!lastResults) return;
+  const { hasFinal, hasExtra, midtermWeight } = lastResults;
+  document.getElementById('gradeTableBody').innerHTML = rows.map((r, idx) => {
+    const rowIdx  = lastResults.tableRows.indexOf(r);
     const finTd   = hasFinal ? `<td class="col-num ${r.status === 'excused' ? 'excused' : (r.fin === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.fin}</td>` : '';
     const extraTd = hasExtra ? `<td class="col-num">${r.extra}</td>` : '';
     const isPass     = typeof r.total === 'number' && r.total >= 60 && r.status !== 'excused';
     const colorClass = r.status === 'excused' ? 'excused' : (isPass ? 'pass' : 'fail');
     const statusLbl  = r.status === 'ok' ? t('statusOk') : r.status === 'missing' ? t('statusMissing') : t('statusExcused');
-    return `<tr>
+    const hlClass    = rowHighlightClass(r);
+    const midClass   = r.status === 'excused' ? 'excused' : (r.mid === 0 && r.status !== 'ok' ? 'zero' : '');
+    const canEdit    = r.status !== 'excused' && r.status !== 'missing';
+    const editBtn    = canEdit
+      ? `<button class="btn-edit-mid" onclick="startEditMid(this, ${rowIdx}, ${midtermWeight})" title="${t('editMidTitle')}">✏️</button>`
+      : '';
+    return `<tr class="${hlClass}">
       <td class="col-id">${r.num}</td>
       <td class="col-name">${r.name}</td>
-      <td class="col-num ${r.status === 'excused' ? 'excused' : (r.mid === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.mid}</td>
+      <td class="col-num mid-cell ${midClass}">${r.mid}${editBtn}</td>
       ${finTd}
       ${extraTd}
       <td class="col-num ${r.status === 'excused' ? 'excused' : (r.total === 0 && r.status !== 'ok' ? 'zero' : '')}">${r.total}</td>
@@ -646,6 +702,61 @@ function renderStep3() {
       <td class="col-status"><span class="status-chip ${colorClass}">${statusLbl}</span></td>
     </tr>`;
   }).join('');
+}
+
+function startEditMid(btn, rowIdx, maxMid) {
+  const cell = btn.parentElement;
+  const row  = lastResults.tableRows[rowIdx];
+  cell.innerHTML = `
+    <input type="number" class="mid-edit-input" value="${row.mid}" min="0" max="${maxMid}" step="0.5"
+      onkeydown="handleMidEditKey(event, this, ${rowIdx}, ${maxMid})" />
+    <button class="btn-edit-confirm" onclick="confirmEditMid(this.previousElementSibling, ${rowIdx}, ${maxMid})">✓</button>
+    <button class="btn-edit-cancel"  onclick="cancelEditMid(${rowIdx})">✕</button>`;
+  cell.querySelector('input').focus();
+}
+
+function handleMidEditKey(e, input, rowIdx, maxMid) {
+  if (e.key === 'Enter') confirmEditMid(input, rowIdx, maxMid);
+  if (e.key === 'Escape') cancelEditMid(rowIdx);
+}
+
+function confirmEditMid(input, rowIdx, maxMid) {
+  const newMid = Math.min(maxMid, Math.max(0, parseFloat(input.value) || 0));
+  const r = lastResults.tableRows[rowIdx];
+  const newTotal = Math.round((newMid + (r.total - r.mid)) * 100) / 100;
+  r.mid   = Math.round(newMid * 100) / 100;
+  r.total = newTotal;
+  r.grade = letterGrade(newTotal);
+
+  // Write normalized midterm value back into outputRows (col 2)
+  // outputRows already stores normalized values, so newMid is written directly.
+  const { outputRows, numToOutputRow, sheetName } = lastResults;
+  const outIdx = numToOutputRow[normalizeNum(String(r.num))];
+  if (outIdx !== undefined) {
+    outputRows[outIdx][2] = newMid;
+    const newSheet = XLSX.utils.aoa_to_sheet(outputRows);
+    resultWorkbook.Sheets[sheetName] = newSheet;
+  }
+
+  filterTable();
+}
+
+function cancelEditMid(rowIdx) {
+  filterTable();
+}
+
+function filterTable() {
+  if (!lastResults) return;
+  const search = document.getElementById('filterSearch').value.trim().toLowerCase();
+  const grade  = document.getElementById('filterGrade').value;
+  const status = document.getElementById('filterStatus').value;
+  const filtered = lastResults.tableRows.filter(r => {
+    if (search && !String(r.num).toLowerCase().includes(search) && !r.name.toLowerCase().includes(search)) return false;
+    if (grade  && r.grade  !== grade)  return false;
+    if (status && r.status !== status) return false;
+    return true;
+  });
+  renderTableRows(filtered);
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────
