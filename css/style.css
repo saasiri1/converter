@@ -644,13 +644,13 @@ select:focus {
 
 .grade-table tr:last-child td { border-bottom: none; }
 .grade-table tbody tr:hover td { background: #f5f8ff; }
-.grade-table tbody tr.hl-borderline:hover td { background: #fff3cd; }
-.grade-table tbody tr.hl-fail-high:hover td  { background: #ffc9c9; }
+.grade-table tbody tr.hl-borderline:hover td { background: #0b5c1b; }
+.grade-table tbody tr.hl-fail-high:hover td  { background: #f49797; }
 .grade-table tbody tr.hl-fail-low:hover td   { background: #ffe5cc; }
 
 /* Row highlights */
-.grade-table tbody tr.hl-borderline td { background: #fff9e6; }
-.grade-table tbody tr.hl-fail-high td  { background: #ffe0e0; }
+.grade-table tbody tr.hl-borderline td { background: #96fa94; }
+.grade-table tbody tr.hl-fail-high td  { background: #f9b8b8; }
 .grade-table tbody tr.hl-fail-low td   { background: #fff0e0; }
 
 /* Zero / excused */
